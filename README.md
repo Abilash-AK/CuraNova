@@ -33,16 +33,16 @@ CuraNova is a modern, AI-powered Electronic Medical Records (EMR) system designe
 - Historical trend analysis
 
 ### 🤖 **AI-Powered Features**
-- **Smart Summaries**: AI-generated patient health overviews
-- **Similar Cases**: Find patients with similar conditions for research insights
-- **Clinical Insights**: AI-driven analysis of medical patterns and trends
-- **Risk Assessment**: Automated identification of potential health risks
+- **Data-Aware Summaries**: Gemini-powered health briefs grounded in each patient's encounters, vitals, and lab abnormalities
+- **Similar Cases**: Find patients with related conditions for research or care planning
+- **Clinical Insights**: AI-driven analysis highlighting trends, risk drivers, and follow-up actions
+- **Risk Assessment**: Automated identification of potential health risks and high-priority alerts
 
 ### 📊 **Analytics & Visualizations**
 - Interactive health metrics charts
-- Patient statistics dashboard
+- Real-time "Doctors Online" indicator synced with active sessions
 - Trend analysis with Recharts
-- Real-time dashboard updates
+- Live dashboard refreshes with background polling
 
 ### 🎨 **Modern User Experience**
 - Beautiful, responsive design with dark/light theme support
@@ -51,7 +51,12 @@ CuraNova is a modern, AI-powered Electronic Medical Records (EMR) system designe
 - Glassmorphism UI elements
 - Advanced CSS effects and gradients
 
-## 🛠️ Technology Stack
+### � **Role-Aware Authentication**
+- Google OAuth 2.0 login with role detection based on structured email aliases
+- Doctor/Nurse/Patient account templates for streamlined testing
+- Automatic session lifecycle management with secure HTTP-only cookies
+
+## �🛠️ Technology Stack
 
 ### **Frontend**
 - **React 19** - Modern React with latest features
@@ -110,6 +115,9 @@ CuraNova is a modern, AI-powered Electronic Medical Records (EMR) system designe
    ```bash
    # Required for AI features
    wrangler secret put GEMINI_API_KEY
+   wrangler secret put GOOGLE_CLIENT_ID
+   wrangler secret put GOOGLE_CLIENT_SECRET
+   wrangler secret put GOOGLE_REDIRECT_URI
    
    # Optional for additional AI features
    wrangler secret put OPENAI_API_KEY
@@ -118,9 +126,11 @@ CuraNova is a modern, AI-powered Electronic Medical Records (EMR) system designe
 6. **Start development server**
    ```bash
    # For full authentication support
-   wrangler dev --local --persist
-   
-   # Access the app at http://localhost:8787
+   npm run dev        # launches Vite dev server (frontend)
+   wrangler dev --persist
+  
+   # Frontend:  http://localhost:5173
+   # Worker API: http://127.0.0.1:8787
    ```
 
 ### Quick Start Script
@@ -134,7 +144,8 @@ bash start-dev.sh
 This script will:
 - Check and install required dependencies
 - Verify Cloudflare authentication
-- Start the development server with proper configuration
+- Populate `.dev.vars` with local secrets (if present)
+- Start both Vite and Wrangler development servers with proper configuration
 
 ## 🏗️ Project Structure
 
@@ -161,6 +172,16 @@ src/
 - **Nurse Role**: Patient management with appropriate clinical permissions
 - Secure role assignment and verification
 
+**Test account patterns**
+
+Use the following email aliases when configuring Google OAuth test users:
+
+- `firstname.01.doctor@gmail.com` → Doctor access
+- `firstname.02.nurse@gmail.com` → Nurse access
+- `firstname.03.patient@gmail.com` → Patient portal access
+
+These patterns map automatically to role permissions inside the worker.
+
 ### Advanced Patient Search
 - Multi-field search across patient demographics
 - Medical record number lookup
@@ -168,7 +189,7 @@ src/
 - Real-time search results
 
 ### AI-Powered Insights
-- **Health Summaries**: Comprehensive AI analysis of patient data
+- **Health Summaries**: Gemini-backed summaries that reference real visits, vitals, labs, and risk factors
 - **Similar Conditions**: Machine learning-based patient matching
 - **Clinical Recommendations**: Evidence-based treatment suggestions
 - **Risk Stratification**: Automated health risk assessment
