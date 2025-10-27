@@ -9,11 +9,100 @@ import { getCookie, setCookie } from "hono/cookie";
 import { PatientSchema, MedicalRecordSchema, LabResultSchema } from "../shared/types";
 import type { DashboardStats } from "../shared/types";
 import type { Env } from "../../worker-configuration";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const SESSION_COOKIE_NAME = "curanova_session";
 const OAUTH_STATE_COOKIE_NAME = "curanova_oauth_state";
 const OAUTH_SCOPE = "openid email profile";
+const GEMINI_MODEL_ID = "gemini-1.5-flash";
+
+type GeminiCandidate = {
+  content?: {
+    parts?: Array<{ text?: string | null | undefined }>;
+  } | null;
+};
+
+const requestGeminiText = async (apiKey: string, prompt: string): Promise<string> => {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL_ID}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: prompt }],
+          },
+        ],
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const errorDetails = await response.text();
+    throw new Error(`Gemini request failed with status ${response.status}: ${errorDetails}`);
+  }
+
+  const payload = await response.json<{ candidates?: GeminiCandidate[] }>();
+  const combinedText = payload.candidates
+    ?.flatMap((candidate) => candidate?.content?.parts ?? [])
+    .map((part) => part?.text ?? "")
+    .join("")
+    .trim();
+
+  if (!combinedText) {
+    throw new Error("Gemini response did not contain any text content");
+  }
+
+  return combinedText;
+};
+
+const extractJsonObject = (raw: string): string => {
+  const startIndex = raw.indexOf("{");
+  const endIndex = raw.lastIndexOf("}");
+  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+    return raw;
+  }
+  return raw.slice(startIndex, endIndex + 1);
+};
+
+function parseJsonOr<T>(raw: string, fallback: T): T {
+  try {
+    const cleaned = extractJsonObject(raw.replace(/```(?:json)?/gi, ""));
+    const parsed = JSON.parse(cleaned) as T;
+    return parsed;
+  } catch {
+    return fallback;
+  }
+}
+
+const normalizeSummary = (summary: unknown, fallback: StructuredSummary): StructuredSummary => {
+  const isNonEmptyString = (value: unknown): value is string => typeof value === "string" && value.trim().length > 0;
+  const toStringArray = (value: unknown): string[] => {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value
+      .map((item) => (isNonEmptyString(item) ? item.trim() : null))
+      .filter((item): item is string => item !== null);
+  };
+
+  const candidate = summary as Partial<StructuredSummary> | undefined;
+  const overview = isNonEmptyString(candidate?.overview) ? candidate!.overview.trim() : fallback.overview;
+  const keyFindings = toStringArray(candidate?.key_findings);
+  const riskFactors = toStringArray(candidate?.risk_factors);
+  const recommendations = toStringArray(candidate?.recommendations);
+  const trends = isNonEmptyString(candidate?.trends) ? candidate!.trends.trim() : fallback.trends;
+
+  return {
+    overview,
+    key_findings: keyFindings.length > 0 ? keyFindings : fallback.key_findings,
+    risk_factors: riskFactors.length > 0 ? riskFactors : fallback.risk_factors,
+    recommendations: recommendations.length > 0 ? recommendations : fallback.recommendations,
+    trends,
+  };
+};
 
 const logError = (message: string, error: unknown) => {
   if (error instanceof Error) {
@@ -71,7 +160,135 @@ const buildMockSyntheticCases = (
   });
 };
 
-const buildMockSummary = (patient: any, medicalRecords: any[], labResults: any[]) => {
+type StructuredSummary = {
+  overview: string;
+  key_findings: string[];
+  risk_factors: string[];
+  recommendations: string[];
+  trends: string;
+};
+
+const formatDate = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const buildDataDrivenSummary = (patient: any, medicalRecords: any[], labResults: any[]): StructuredSummary => {
+  const fallback = buildMockSummary(patient, medicalRecords, labResults);
+  const name = `${patient?.first_name ?? "Patient"} ${patient?.last_name ?? ""}`.trim() || "The patient";
+  const visitCount = medicalRecords.length;
+  const labCount = labResults.length;
+  const latestVisit = medicalRecords[0] ?? null;
+  const latestLab = labResults[0] ?? null;
+  const abnormalLabs = labResults.filter((lab) => lab?.is_abnormal);
+
+  const systolicValues = medicalRecords
+    .map((record) => Number(record?.blood_pressure_systolic))
+    .filter((value) => Number.isFinite(value));
+  const diastolicValues = medicalRecords
+    .map((record) => Number(record?.blood_pressure_diastolic))
+    .filter((value) => Number.isFinite(value));
+  const maxSystolic = systolicValues.length ? Math.max(...systolicValues) : null;
+  const maxDiastolic = diastolicValues.length ? Math.max(...diastolicValues) : null;
+
+  const weights = medicalRecords
+    .map((record) => Number(record?.weight))
+    .filter((value) => Number.isFinite(value));
+  const latestWeight = weights[0] ?? null;
+  const earliestWeight = weights.length > 1 ? weights[weights.length - 1] : null;
+  const weightTrend = latestWeight != null && earliestWeight != null ? latestWeight - earliestWeight : null;
+
+  const overviewParts: string[] = [];
+  overviewParts.push(`${name} has ${visitCount} documented visit${visitCount === 1 ? "" : "s"}`);
+  overviewParts.push(`and ${labCount} lab result${labCount === 1 ? "" : "s"}.`);
+  if (latestVisit?.visit_date) {
+    overviewParts.push(`Most recent encounter was on ${formatDate(latestVisit.visit_date)}.`);
+  }
+
+  const keyFindings: string[] = [];
+  if (latestVisit) {
+    const diagnosis = latestVisit.diagnosis || latestVisit.chief_complaint || "follow-up care";
+    keyFindings.push(`Latest visit (${formatDate(latestVisit.visit_date) ?? latestVisit.visit_date ?? "recent"}) focused on ${diagnosis}.`);
+  }
+  if (latestLab) {
+    keyFindings.push(`Recent lab panel (${formatDate(latestLab.test_date) ?? latestLab.test_date ?? "recent"}) included ${latestLab.test_name}${latestLab.test_value ? ` at ${latestLab.test_value}${latestLab.test_unit ?? ""}` : ""}.`);
+  }
+  if (abnormalLabs.length) {
+    const highlighted = abnormalLabs.slice(0, 3).map((lab) => `${lab.test_name} (${lab.test_value}${lab.test_unit ?? ""})`);
+    keyFindings.push(`Abnormal results flagged: ${highlighted.join(", ")}.${abnormalLabs.length > 3 ? " Additional abnormalities present." : ""}`);
+  }
+  if (weights.length >= 2 && weightTrend) {
+    keyFindings.push(`Weight changed ${weightTrend > 0 ? "by +" : "by "}${Math.abs(weightTrend).toFixed(1)} units across recorded visits.`);
+  }
+
+  const riskFactors: string[] = [];
+  if (maxSystolic != null && maxDiastolic != null && (maxSystolic >= 140 || maxDiastolic >= 90)) {
+    riskFactors.push(`Blood pressure reached ${maxSystolic}/${maxDiastolic}, indicating hypertension risk that requires monitoring.`);
+  }
+  if (abnormalLabs.length) {
+    const riskLab = abnormalLabs[0];
+    riskFactors.push(`${riskLab.test_name} remains outside the reference range (${riskLab.test_value}${riskLab.test_unit ?? ""}); correlate with clinical findings.`);
+  }
+  if (patient?.allergies) {
+    riskFactors.push(`Documented allergies: ${patient.allergies}. Ensure avoidance strategies and emergency plans remain current.`);
+  }
+  if (latestVisit?.cholesterol && Number(latestVisit.cholesterol) > 200) {
+    riskFactors.push(`Total cholesterol recorded at ${latestVisit.cholesterol} mg/dL suggests cardiovascular risk elevation.`);
+  }
+
+  const recommendations: string[] = [];
+  if (latestVisit) {
+    recommendations.push(`Schedule follow-up for ${formatDate(latestVisit.visit_date) ?? "the latest visit"} concerns to maintain continuity of care.`);
+  }
+  if (maxSystolic != null && maxDiastolic != null && (maxSystolic >= 140 || maxDiastolic >= 90)) {
+    recommendations.push("Reinforce blood pressure management with lifestyle counseling and medication review.");
+  }
+  if (abnormalLabs.length) {
+    recommendations.push("Plan repeat testing and targeted interventions for abnormal lab trends.");
+  }
+  if (weightTrend && Math.abs(weightTrend) >= 5) {
+    recommendations.push(`Discuss ${weightTrend > 0 ? "weight gain" : "weight loss"} of ${Math.abs(weightTrend).toFixed(1)} units with the patient to confirm intent and address contributing factors.`);
+  }
+
+  const trendLines: string[] = [];
+  if (weights.length >= 2 && weightTrend) {
+    trendLines.push(`${weightTrend > 0 ? "Gradual weight gain" : "Weight reduction"} noted between earliest and latest encounters.`);
+  }
+  if (systolicValues.length >= 2) {
+    const latestBp = `${latestVisit?.blood_pressure_systolic ?? "--"}/${latestVisit?.blood_pressure_diastolic ?? "--"}`;
+    trendLines.push(`Blood pressure trend currently at ${latestBp}; continue cardiovascular monitoring.`);
+  }
+  if (!trendLines.length) {
+    trendLines.push("Clinical data remain limited; continue structured documentation to improve longitudinal insight.");
+  }
+
+  const ensureLength = (items: string[], fallbackItems: string[]): string[] => {
+    const cleaned = items.filter((item) => typeof item === "string" && item.trim().length > 0);
+    const result = [...cleaned];
+    while (result.length < fallbackItems.length) {
+      result.push(fallbackItems[result.length] ?? fallbackItems[fallbackItems.length - 1]);
+    }
+    return result.slice(0, fallbackItems.length);
+  };
+
+  return {
+    overview: overviewParts.join(" ").trim() || fallback.overview,
+    key_findings: ensureLength(keyFindings, fallback.key_findings),
+    risk_factors: ensureLength(riskFactors, fallback.risk_factors),
+    recommendations: ensureLength(recommendations, fallback.recommendations),
+    trends: trendLines.join(" ") || fallback.trends,
+  };
+};
+
+const buildMockSummary = (patient: any, medicalRecords: any[], labResults: any[]): StructuredSummary => {
   const name = `${patient?.first_name ?? "Patient"} ${patient?.last_name ?? ""}`.trim();
   const encounterCount = medicalRecords.length;
   const labCount = labResults.length;
@@ -99,7 +316,7 @@ const buildMockSummary = (patient: any, medicalRecords: any[], labResults: any[]
     ],
     trends:
       "Available encounters show stable management with opportunities to enrich documentation on lifestyle factors and long-term preventive strategies.",
-  } as const;
+  };
 };
 
 const buildRedirectUri = (c: Context<WorkerContext>): string => {
@@ -1536,9 +1753,6 @@ app.post("/api/patients/:id/synthetic-cases", authMiddleware, async (c) => {
       return c.json({ synthetic_cases: mockCases.slice(0, count) });
     }
 
-    const genAI = new GoogleGenerativeAI(c.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
     const patientContext = {
       demographics: {
         age: (patient as any).date_of_birth ? new Date().getFullYear() - new Date((patient as any).date_of_birth).getFullYear() : null,
@@ -1588,9 +1802,13 @@ Return ONLY a valid JSON object with this structure:
   ]
 }`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    let text: string;
+    try {
+      text = await requestGeminiText(c.env.GEMINI_API_KEY, prompt);
+    } catch (geminiError) {
+      logError("Gemini synthetic case request failed", geminiError);
+      return c.json({ synthetic_cases: mockCases.slice(0, count) });
+    }
     
     let casesData;
     try {
@@ -1644,14 +1862,11 @@ app.post("/api/patients/:id/ai-summary", authMiddleware, async (c) => {
       ).bind(patientId).all()
     ]);
 
-    if (!c.env.GEMINI_API_KEY) {
-      return c.json({
-        summary: buildMockSummary(patient, medicalRecords.results || [], labResults.results || []),
-      });
-    }
+  const fallbackSummary = buildDataDrivenSummary(patient, medicalRecords.results || [], labResults.results || []);
 
-    const genAI = new GoogleGenerativeAI(c.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    if (!c.env.GEMINI_API_KEY) {
+      return c.json({ summary: fallbackSummary });
+    }
 
     const medicalData = {
       patient: {
@@ -1670,6 +1885,9 @@ app.post("/api/patients/:id/ai-summary", authMiddleware, async (c) => {
 Patient Data:
 ${JSON.stringify(medicalData, null, 2)}
 
+Baseline structured summary derived from the data:
+${JSON.stringify(fallbackSummary, null, 2)}
+
 Please provide a structured analysis with:
 1. Clinical overview (2-3 sentences)
 2. Key findings (3-4 bullet points)
@@ -1686,28 +1904,21 @@ Return ONLY a valid JSON object with this exact structure:
   "trends": "string"
 }`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    let summary;
+    let summary: StructuredSummary = fallbackSummary;
     try {
-      const cleanText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      summary = JSON.parse(cleanText);
-    } catch (parseError) {
-      logError("Failed to parse AI summary response", parseError);
-      summary = buildMockSummary(patient, medicalRecords.results || [], labResults.results || []);
+      const rawResponse = await requestGeminiText(c.env.GEMINI_API_KEY, prompt);
+      const parsed = parseJsonOr<StructuredSummary>(rawResponse, fallbackSummary);
+      summary = normalizeSummary(parsed, fallbackSummary);
+    } catch (geminiError) {
+      logError("Gemini AI summary request failed", geminiError);
+      summary = fallbackSummary;
     }
-    
+
     return c.json({ summary });
   } catch (error) {
     logError("Failed to generate AI summary", error);
     return c.json({
-      summary: buildMockSummary(
-        null,
-        [],
-        [],
-      ),
+      summary: buildMockSummary(null, [], []),
     });
   }
 });
