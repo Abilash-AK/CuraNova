@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Patient, MedicalRecord, LabResult, DashboardStats, PatientWithRecords } from '@/shared/types';
 
-export function useApi<T>(url: string) {
+type UseApiOptions = {
+  pollInterval?: number;
+};
+
+export function useApi<T>(url: string, options?: UseApiOptions) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,11 +31,25 @@ export function useApi<T>(url: string) {
     void fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    if (!options?.pollInterval) {
+      return;
+    }
+
+    const timerId = window.setInterval(() => {
+      void fetchData();
+    }, options.pollInterval);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [fetchData, options?.pollInterval]);
+
   return { data, loading, error, refetch: fetchData };
 }
 
 export function useDashboardStats() {
-  return useApi<DashboardStats>('/api/dashboard/stats');
+  return useApi<DashboardStats>('/api/dashboard/stats', { pollInterval: 15000 });
 }
 
 export function usePatients(search: string = '') {

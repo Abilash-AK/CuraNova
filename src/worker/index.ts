@@ -8,6 +8,7 @@ import { zValidator } from "@hono/zod-validator";
 import { getCookie, setCookie } from "hono/cookie";
 import { PatientSchema, MedicalRecordSchema, LabResultSchema } from "../shared/types";
 import type { DashboardStats } from "../shared/types";
+import type { Env } from "../../worker-configuration";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const SESSION_COOKIE_NAME = "curanova_session";
@@ -111,8 +112,23 @@ const buildRedirectUri = (c: Context<WorkerContext>): string => {
 
   try {
     const parsedConfigured = new URL(configuredRedirect);
-    parsedConfigured.protocol = requestUrl.protocol;
-    parsedConfigured.host = requestUrl.host;
+
+    // Keep the configured protocol; only adjust host/port for local development parity.
+    const requestHost = requestUrl.hostname;
+    const configuredHost = parsedConfigured.hostname;
+    const requestIsLocal = requestHost === "127.0.0.1" || requestHost === "localhost";
+    const configuredIsLocal = configuredHost === "127.0.0.1" || configuredHost === "localhost";
+
+    if (requestIsLocal && configuredIsLocal) {
+      parsedConfigured.hostname = requestHost;
+      parsedConfigured.port = requestUrl.port || parsedConfigured.port;
+    }
+
+    // If both URLs share the same host and a port is present on the request, mirror it.
+    if (!parsedConfigured.port && requestUrl.port && parsedConfigured.hostname === requestHost) {
+      parsedConfigured.port = requestUrl.port;
+    }
+
     return parsedConfigured.toString();
   } catch (error) {
     console.warn("Failed to parse GOOGLE_REDIRECT_URI, falling back to request host", error);
@@ -156,25 +172,25 @@ app.get('/health', (c) => {
 // Helper function to determine user role from email
 const getUserRoleFromEmail = (email: string): string => {
   if (!email) return 'unauthorized';
-  
-  // Check for doctor pattern: doctorname.01.doctor@gmail.com
-  const doctorPattern = /^[a-zA-Z]+\.01\.doctor@gmail\.com$/;
-  if (doctorPattern.test(email)) {
+
+  const normalized = email.trim().toLowerCase();
+
+  // Allow letters, digits, dots, underscores, or hyphens before the role marker.
+  const doctorPattern = /^[a-z0-9._-]+\.01\.doctor@gmail\.com$/;
+  if (doctorPattern.test(normalized)) {
     return 'doctor';
   }
-  
-  // Check for nurse pattern: nursename.02.nurse@gmail.com
-  const nursePattern = /^[a-zA-Z]+\.02\.nurse@gmail\.com$/;
-  if (nursePattern.test(email)) {
+
+  const nursePattern = /^[a-z0-9._-]+\.02\.nurse@gmail\.com$/;
+  if (nursePattern.test(normalized)) {
     return 'nurse';
   }
 
-  // Check for patient pattern: patientname.03.patient@gmail.com
-  const patientPattern = /^[a-zA-Z]+\.03\.patient@gmail\.com$/;
-  if (patientPattern.test(email)) {
+  const patientPattern = /^[a-z0-9._-]+\.03\.patient@gmail\.com$/;
+  if (patientPattern.test(normalized)) {
     return 'patient';
   }
-  
+
   return 'unauthorized';
 };
 
@@ -298,6 +314,11 @@ app.get('/api/oauth/google/redirect_url', async (c) => {
     authUrl.searchParams.set("state", state);
     authUrl.searchParams.set("prompt", "select_account");
     authUrl.searchParams.set("access_type", "offline");
+
+    console.log("Generated Google OAuth redirect", {
+      redirectUri,
+      authUrl: authUrl.toString(),
+    });
 
   return c.json({ redirectUrl: authUrl.toString(), redirectUri, state }, 200);
   } catch (error) {
