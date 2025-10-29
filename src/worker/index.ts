@@ -2352,6 +2352,246 @@ Return ONLY valid JSON in this structure (no markdown, no explanations):
   }
 });
 
+// Medical Chatbot endpoint - AI assistant for doctors
+app.post("/api/chatbot", authMiddleware, async (c) => {
+  try {
+    const user = c.get("user");
+    if (!user) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const body = await c.req.json();
+    const { message, conversationHistory = [] } = body as {
+      message: string;
+      conversationHistory?: Array<{ role: string; content: string }>;
+    };
+
+    if (!message || message.trim().length === 0) {
+      return c.json({ error: "Message is required" }, 400);
+    }
+
+    // Build conversation context for Gemini
+    let conversationContext = `You are CuraNova AI Assistant, a highly knowledgeable medical AI assistant helping doctors and healthcare professionals. You provide evidence-based medical information, clinical guidance, and decision support.
+
+IMPORTANT GUIDELINES:
+1. Provide accurate, evidence-based medical information
+2. Cite medical guidelines and research when relevant
+3. Be concise but thorough in explanations
+4. Use clinical terminology appropriately
+5. Always remind that final clinical decisions should be made by the healthcare provider
+6. If asked about specific patient cases, provide general guidance while emphasizing the need for individual assessment
+7. For medication questions, include common dosages, contraindications, and interactions
+8. For diagnostic questions, discuss differential diagnoses and recommended workup
+9. Stay current with medical best practices and guidelines
+
+`;
+
+    // Add conversation history if exists
+    if (conversationHistory.length > 0) {
+      conversationContext += "\nConversation History:\n";
+      // Limit to last 5 exchanges to keep context manageable
+      const recentHistory = conversationHistory.slice(-10);
+      for (const msg of recentHistory) {
+        const role = msg.role === 'user' ? 'Doctor' : 'AI Assistant';
+        conversationContext += `${role}: ${msg.content}\n`;
+      }
+      conversationContext += "\n";
+    }
+
+    conversationContext += `Doctor's Question: ${message}\n\nAI Assistant:`;
+
+    try {
+      // Validate API key
+      if (!c.env.GEMINI_API_KEY) {
+        throw new Error("Gemini API key not configured");
+      }
+
+      // Call Gemini API
+      const geminiResponse = await requestGeminiText(c.env.GEMINI_API_KEY, conversationContext);
+      
+      if (!geminiResponse) {
+        throw new Error("No response from Gemini API");
+      }
+
+      // Parse and clean the response
+      let aiResponse = geminiResponse.trim();
+      
+      // Add disclaimer if discussing treatment or diagnosis
+      const needsDisclaimer = /treat|diagnose|prescribe|recommend|therapy|medication|drug/i.test(message);
+      if (needsDisclaimer && !aiResponse.toLowerCase().includes('disclaimer')) {
+        aiResponse += "\n\n*Note: This information is for educational purposes. Always verify with current clinical guidelines and consider individual patient factors when making clinical decisions.*";
+      }
+
+      return c.json({
+        response: aiResponse,
+        timestamp: new Date().toISOString(),
+        conversationId: crypto.randomUUID()
+      });
+
+    } catch (geminiError) {
+      logError("Gemini API call failed in chatbot", geminiError);
+      
+      // Fallback response if Gemini fails
+      const fallbackResponse = getFallbackChatbotResponse(message);
+      
+      return c.json({
+        response: fallbackResponse,
+        timestamp: new Date().toISOString(),
+        conversationId: crypto.randomUUID(),
+        fallback: true
+      });
+    }
+
+  } catch (error) {
+    logError("Chatbot endpoint error", error);
+    return c.json({ error: "Failed to process chatbot request" }, 500);
+  }
+});
+
+// Helper function for fallback chatbot responses
+function getFallbackChatbotResponse(question: string): string {
+  const questionLower = question.toLowerCase();
+  
+  // Hypertension queries
+  if (questionLower.includes('hypertension') || questionLower.includes('blood pressure')) {
+    return `Based on current JNC-8 and ACC/AHA guidelines for hypertension management:
+
+**Blood Pressure Classification:**
+- Normal: <120/80 mmHg
+- Elevated: 120-129/<80 mmHg
+- Stage 1: 130-139/80-89 mmHg
+- Stage 2: ≥140/90 mmHg
+
+**First-line Medications:**
+1. Thiazide diuretics (e.g., Chlorthalidone 12.5-25mg daily)
+2. ACE inhibitors (e.g., Lisinopril 10-40mg daily)
+3. ARBs (e.g., Losartan 25-100mg daily)
+4. Calcium channel blockers (e.g., Amlodipine 5-10mg daily)
+
+**Treatment Goals:**
+- General population: <130/80 mmHg
+- Diabetes/CKD: <130/80 mmHg
+- Elderly (>65): <130/80 mmHg (if tolerated)
+
+**Lifestyle Modifications:**
+- DASH diet, sodium restriction (<2g/day), regular exercise, weight loss, alcohol moderation
+
+*Note: Treatment should be individualized based on patient comorbidities, age, and risk factors.*`;
+  }
+  
+  // Diabetes queries
+  if (questionLower.includes('diabetes') || questionLower.includes('glucose') || questionLower.includes('hba1c')) {
+    return `Current ADA guidelines for Type 2 Diabetes management:
+
+**Diagnostic Criteria:**
+- Fasting glucose ≥126 mg/dL
+- 2-hour OGTT ≥200 mg/dL
+- HbA1c ≥6.5%
+- Random glucose ≥200 mg/dL with symptoms
+
+**Treatment Goals:**
+- HbA1c: <7% (general), <6.5% (if achieved safely), <8% (elderly/comorbidities)
+- Preprandial glucose: 80-130 mg/dL
+- Postprandial: <180 mg/dL
+
+**First-line Therapy:**
+1. Metformin 500-2000mg daily (start low, titrate up)
+2. If inadequate control, add:
+   - SGLT-2 inhibitors (cardiovascular/renal benefits)
+   - GLP-1 agonists (weight loss, CV benefits)
+   - DPP-4 inhibitors
+   - Sulfonylureas (budget-friendly)
+   - Insulin (if severe hyperglycemia)
+
+**Monitoring:**
+- HbA1c every 3 months until goal, then every 6 months
+- Annual screening for retinopathy, nephropathy, neuropathy
+- Cardiovascular risk assessment
+
+*Note: Consider patient-specific factors including cardiovascular disease, renal function, and hypoglycemia risk.*`;
+  }
+  
+  // General medication query
+  if (questionLower.includes('medication') || questionLower.includes('drug') || questionLower.includes('prescribe')) {
+    return `I can help with medication-related questions. For specific guidance, please ask about:
+
+- **Specific medications** (dosing, interactions, contraindications)
+- **Therapeutic classes** (comparison, selection criteria)
+- **Clinical conditions** (first-line agents, treatment algorithms)
+- **Drug interactions** (major interactions to avoid)
+- **Adverse effects** (monitoring parameters, management)
+
+Please provide more details about your specific medication question, including:
+- The condition being treated
+- Patient characteristics (age, comorbidities, current medications)
+- Specific concerns or decision points
+
+*Always verify prescribing information with current FDA labeling and institutional formularies.*`;
+  }
+  
+  // Diagnostic queries
+  if (questionLower.includes('diagnose') || questionLower.includes('differential') || questionLower.includes('workup')) {
+    return `For diagnostic assistance, I can help with:
+
+**Differential Diagnosis Development:**
+- Common and serious causes to consider
+- Red flag symptoms requiring urgent evaluation
+- Systematic approach by organ system
+
+**Diagnostic Workup Recommendations:**
+- Appropriate laboratory tests
+- Imaging modalities and indications
+- Timing and urgency of investigations
+
+**Clinical Decision Tools:**
+- Evidence-based scoring systems
+- Risk stratification approaches
+- Diagnostic algorithms
+
+Please provide specific details about:
+- Chief complaint and presenting symptoms
+- Duration and progression
+- Relevant patient history
+- Physical examination findings
+
+This will allow me to provide more targeted diagnostic guidance.
+
+*Remember: Clinical judgment and individual patient assessment are essential for accurate diagnosis.*`;
+  }
+
+  // Default response
+  return `Thank you for your question. As CuraNova AI Assistant, I can help you with:
+
+**Clinical Questions:**
+- Disease management guidelines
+- Medication selection and dosing
+- Diagnostic workup recommendations
+- Differential diagnosis considerations
+- Treatment protocols and algorithms
+
+**Common Topics:**
+- Chronic disease management (diabetes, hypertension, COPD, etc.)
+- Acute care conditions
+- Preventive care guidelines
+- Laboratory interpretation
+- Medication interactions and contraindications
+
+**How to Ask:**
+Please be specific about:
+- The clinical scenario or condition
+- Patient demographics (age, comorbidities)
+- Your specific question or decision point
+
+For example:
+- "What is the first-line treatment for newly diagnosed type 2 diabetes in a 55-year-old?"
+- "How should I manage a patient with resistant hypertension?"
+- "What workup is needed for unexplained anemia?"
+
+I'm here to provide evidence-based medical guidance. How can I assist you today?
+
+*Disclaimer: This AI assistant provides general medical information and should not replace clinical judgment or individualized patient assessment.*`;
+}
+
 // Patient login endpoint
 app.post('/api/patient-login', async (c) => {
   try {

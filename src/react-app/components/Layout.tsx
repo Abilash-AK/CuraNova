@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "@/react-app/contexts/AuthContext";
 import { useRole } from "@/react-app/contexts/RoleContext";
 import ThemeToggle from "./ThemeToggle";
+import ChatbotModal from "./ChatbotModal";
 import { 
   Home,
   Users,
@@ -10,7 +11,9 @@ import {
   LogOut,
   Menu,
   X,
-  Search
+  Search,
+  Bot,
+  MessageCircle
 } from "lucide-react";
 import { useState } from "react";
 
@@ -24,6 +27,7 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
 
   // Check for demo user
   const demoUser = localStorage.getItem('demo-user');
@@ -213,6 +217,32 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Floating Chatbot Button - Only for doctors */}
+      {isDoctor && (
+        <>
+          <button
+            onClick={() => setChatbotOpen(true)}
+            className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 flex items-center justify-center z-40 group"
+            title="AI Medical Assistant"
+          >
+            <MessageCircle className="w-6 h-6" />
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"></span>
+          </button>
+          
+          {/* Tooltip */}
+          <div className="fixed bottom-6 right-24 bg-gray-900 text-white px-3 py-2 rounded-lg text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-40 hidden lg:block">
+            AI Medical Assistant
+            <div className="absolute right-0 top-1/2 transform translate-x-2 -translate-y-1/2 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-l-4 border-l-gray-900"></div>
+          </div>
+
+          {/* Chatbot Modal */}
+          <ChatbotModal 
+            isOpen={chatbotOpen} 
+            onClose={() => setChatbotOpen(false)} 
+          />
+        </>
+      )}
     </div>
   );
 }
