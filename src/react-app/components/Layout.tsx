@@ -12,7 +12,6 @@ import {
   Menu,
   X,
   Search,
-  Bot,
   MessageCircle
 } from "lucide-react";
 import { useState } from "react";

@@ -185,9 +185,7 @@ const buildDataDrivenSummary = (patient: any, medicalRecords: any[], labResults:
   const fallback = buildMockSummary(patient, medicalRecords, labResults);
   const name = `${patient?.first_name ?? "Patient"} ${patient?.last_name ?? ""}`.trim() || "The patient";
   const visitCount = medicalRecords.length;
-  const labCount = labResults.length;
   const latestVisit = medicalRecords[0] ?? null;
-  const latestLab = labResults[0] ?? null;
   const abnormalLabs = labResults.filter((lab) => lab?.is_abnormal);
 
   // Enhanced vital analysis
@@ -2693,6 +2691,303 @@ app.get('/api/patient-data/:mrn', async (c) => {
     return c.json({ error: "Failed to fetch patient data" }, 500);
   }
 });
+
+// Patient Health Summary endpoint - AI-generated personalized health guidance
+app.get('/api/patient-health-summary/:mrn', async (c) => {
+  try {
+    const mrn = c.req.param('mrn');
+    
+    // Verify patient session
+    const sessionToken = getCookie(c, 'patient_session_token');
+    const patient = await c.env.DB.prepare(
+      "SELECT * FROM patients WHERE medical_record_number = ?"
+    ).bind(mrn).first();
+    
+    if (!patient) {
+      return c.json({ error: "Patient not found" }, 404);
+    }
+
+    if (!sessionToken) {
+      // Allow if accessing own data (demo mode)
+      const demoCheck = await c.env.DB.prepare(
+        "SELECT id FROM patients WHERE medical_record_number = ?"
+      ).bind(mrn).first();
+      
+      if (!demoCheck) {
+        return c.json({ error: "Access denied" }, 401);
+      }
+    }
+
+    // Get comprehensive patient data
+    const [medicalRecords, labResults] = await Promise.all([
+      c.env.DB.prepare(
+        "SELECT * FROM medical_records WHERE patient_id = ? ORDER BY visit_date DESC LIMIT 10"
+      ).bind((patient as any).id).all(),
+      c.env.DB.prepare(
+        "SELECT * FROM lab_results WHERE patient_id = ? ORDER BY test_date DESC LIMIT 20"
+      ).bind((patient as any).id).all()
+    ]);
+
+    const records = medicalRecords.results as any[];
+    const labs = labResults.results as any[];
+
+    // Extract key health information
+    const diagnoses = new Set<string>();
+    const medications = new Set<string>();
+    
+    records.forEach(record => {
+      if (record.diagnosis) {
+        record.diagnosis.split(/[,;]/).forEach((d: string) => {
+          const diagnosis = d.trim();
+          if (diagnosis.length > 3) diagnoses.add(diagnosis);
+        });
+      }
+      if (record.prescription) {
+        record.prescription.split(/[,;]/).forEach((m: string) => {
+          const med = m.trim();
+          if (med.length > 2) medications.add(med);
+        });
+      }
+    });
+
+    // Get recent vitals
+    const recentRecord = records[0];
+    const recentBP = recentRecord ? 
+      `${recentRecord.blood_pressure_systolic}/${recentRecord.blood_pressure_diastolic}` : 
+      'Not recorded';
+    const recentWeight = recentRecord?.weight || 'Not recorded';
+    
+    // Get abnormal labs
+    const abnormalLabs = labs.filter(lab => lab.is_abnormal).slice(0, 5);
+
+    // Build Gemini prompt for patient-friendly health summary
+    const patientName = `${(patient as any).first_name} ${(patient as any).last_name}`;
+    const age = (patient as any).date_of_birth ? 
+      new Date().getFullYear() - new Date((patient as any).date_of_birth).getFullYear() : 
+      'unknown';
+
+    const prompt = `You are a compassionate AI health assistant helping a patient understand their health information. Generate a patient-friendly, easy-to-understand health summary for:
+
+Patient: ${patientName}, Age: ${age}, Gender: ${(patient as any).gender}
+Allergies: ${(patient as any).allergies || 'None reported'}
+
+DIAGNOSED CONDITIONS:
+${Array.from(diagnoses).join(', ') || 'No specific diagnoses on record'}
+
+CURRENT MEDICATIONS:
+${Array.from(medications).join(', ') || 'No medications on record'}
+
+RECENT VITALS:
+- Blood Pressure: ${recentBP}
+- Weight: ${recentWeight}
+
+ABNORMAL LAB RESULTS:
+${abnormalLabs.length > 0 ? abnormalLabs.map(lab => `${lab.test_name}: ${lab.test_value} ${lab.test_unit} (Reference: ${lab.reference_range})`).join('\n') : 'No recent abnormal results'}
+
+Generate a comprehensive, patient-friendly health summary with these sections:
+
+1. **Your Health Overview** (2-3 sentences explaining their current health status in simple terms)
+
+2. **What Your Diagnoses Mean** (Explain each diagnosed condition in simple language, what it means, and why it's important to manage)
+
+3. **About Your Medications** (For each medication, explain:
+   - What it does
+   - Why you're taking it
+   - When and how to take it
+   - Important side effects to watch for)
+
+4. **Foods to Eat & Avoid** (Specific dietary recommendations based on their conditions:
+   - Foods that help manage their conditions
+   - Foods to limit or avoid
+   - Practical meal suggestions)
+
+5. **Lifestyle Measures You Can Take** (Actionable steps:
+   - Exercise recommendations
+   - Stress management
+   - Sleep habits
+   - Daily routines
+   - Monitoring what to track)
+
+6. **Understanding Your Lab Results** (Explain any abnormal results in simple terms and what they mean for health)
+
+7. **Important Reminders** (Medication adherence, follow-up appointments, warning signs to watch for, when to call the doctor)
+
+Use simple, encouraging language. Avoid medical jargon or explain it clearly. Be supportive and empowering. Focus on actionable advice the patient can implement today.`;
+
+    try {
+      if (!c.env.GEMINI_API_KEY) {
+        throw new Error("Gemini API key not configured");
+      }
+
+      const geminiResponse = await requestGeminiText(c.env.GEMINI_API_KEY, prompt);
+      
+      if (geminiResponse) {
+        return c.json({
+          summary: geminiResponse,
+          generated_at: new Date().toISOString(),
+          diagnoses: Array.from(diagnoses),
+          medications: Array.from(medications),
+          ai_generated: true
+        });
+      }
+      
+      throw new Error("No response from Gemini");
+    } catch (geminiError) {
+      logError("Gemini API failed for patient summary", geminiError);
+      
+      // Fallback summary
+      const fallbackSummary = buildPatientFallbackSummary(
+        patientName,
+        Array.from(diagnoses),
+        Array.from(medications),
+        abnormalLabs,
+        (patient as any).allergies
+      );
+      
+      return c.json({
+        summary: fallbackSummary,
+        generated_at: new Date().toISOString(),
+        diagnoses: Array.from(diagnoses),
+        medications: Array.from(medications),
+        ai_generated: false,
+        fallback: true
+      });
+    }
+  } catch (error) {
+    logError("Failed to generate patient health summary", error);
+    return c.json({ error: "Failed to generate health summary" }, 500);
+  }
+});
+
+// Helper function for patient fallback summary
+function buildPatientFallbackSummary(
+  name: string,
+  diagnoses: string[],
+  medications: string[],
+  abnormalLabs: any[],
+  allergies: string | null
+): string {
+  const primaryCondition = diagnoses[0] || 'general health';
+  
+  let summary = `# Your Health Summary - ${name}\n\n`;
+  
+  summary += `## Your Health Overview\n\nYou are currently being monitored for ${diagnoses.length > 0 ? diagnoses.join(', ') : 'your general health'}. `;
+  summary += `This summary will help you understand your health conditions and what you can do to stay healthy.\n\n`;
+  
+  if (allergies) {
+    summary += `⚠️ **IMPORTANT ALLERGY ALERT:** ${allergies}\nAlways inform healthcare providers about your allergies before any treatment or medication.\n\n`;
+  }
+  
+  // Diagnoses explanation
+  if (diagnoses.length > 0) {
+    summary += `## What Your Diagnoses Mean\n\n`;
+    diagnoses.forEach(diagnosis => {
+      const diagLower = diagnosis.toLowerCase();
+      if (diagLower.includes('diabetes')) {
+        summary += `**${diagnosis}:**\nDiabetes means your blood sugar (glucose) levels are higher than normal. Managing it well helps prevent complications with your eyes, kidneys, heart, and nerves. With proper care, you can live a full, healthy life.\n\n`;
+      } else if (diagLower.includes('hypertension') || diagLower.includes('blood pressure')) {
+        summary += `**${diagnosis}:**\nHigh blood pressure means your heart is working harder than it should to pump blood. Controlling it reduces your risk of heart attack, stroke, and kidney problems.\n\n`;
+      } else if (diagLower.includes('hyperlipid') || diagLower.includes('cholesterol')) {
+        summary += `**${diagnosis}:**\nThis means you have high levels of fats (cholesterol) in your blood, which can build up in arteries and increase heart disease risk. Diet, exercise, and medication can help.\n\n`;
+      } else {
+        summary += `**${diagnosis}:**\nThis is a condition that requires ongoing management. Follow your doctor's advice and attend regular check-ups to monitor your progress.\n\n`;
+      }
+    });
+  }
+  
+  // Medications
+  if (medications.length > 0) {
+    summary += `## About Your Medications\n\nYou are currently taking: ${medications.join(', ')}\n\n`;
+    summary += `**Important Medication Reminders:**\n`;
+    summary += `- Take medications at the same time each day\n`;
+    summary += `- Don't skip doses - consistency is key\n`;
+    summary += `- Don't stop medications without talking to your doctor\n`;
+    summary += `- Keep a list of your medications with you\n`;
+    summary += `- Ask your pharmacist if you have questions\n\n`;
+  }
+  
+  // Diet recommendations
+  summary += `## Foods to Eat & Avoid\n\n`;
+  if (diagnoses.some(d => d.toLowerCase().includes('diabetes'))) {
+    summary += `**For Diabetes Management:**\n\n`;
+    summary += `✅ **Foods to Eat:**\n`;
+    summary += `- Whole grains (brown rice, whole wheat bread, oats)\n`;
+    summary += `- Lean proteins (chicken, fish, beans, tofu)\n`;
+    summary += `- Lots of vegetables (especially leafy greens)\n`;
+    summary += `- Fresh fruits (in moderation - apples, berries, oranges)\n`;
+    summary += `- Nuts and seeds\n\n`;
+    summary += `❌ **Foods to Limit:**\n`;
+    summary += `- White bread, white rice, regular pasta\n`;
+    summary += `- Sugary drinks (soda, sweet tea, juice)\n`;
+    summary += `- Sweets and desserts\n`;
+    summary += `- Fried foods\n`;
+    summary += `- Processed snacks\n\n`;
+  }
+  
+  if (diagnoses.some(d => d.toLowerCase().includes('hypertension') || d.toLowerCase().includes('pressure'))) {
+    summary += `**For Blood Pressure Control:**\n\n`;
+    summary += `✅ **Foods to Eat:**\n`;
+    summary += `- Fresh fruits and vegetables\n`;
+    summary += `- Low-fat dairy products\n`;
+    summary += `- Whole grains\n`;
+    summary += `- Fish rich in omega-3 (salmon, mackerel)\n`;
+    summary += `- Nuts, beans, and seeds\n\n`;
+    summary += `❌ **Foods to Avoid:**\n`;
+    summary += `- Salty foods (chips, pickles, processed meats)\n`;
+    summary += `- Canned soups and frozen dinners\n`;
+    summary += `- Fast food\n`;
+    summary += `- Limit salt to less than 1 teaspoon per day\n\n`;
+  }
+  
+  // Lifestyle measures
+  summary += `## Lifestyle Measures You Can Take\n\n`;
+  summary += `**Physical Activity:**\n`;
+  summary += `- Aim for 30 minutes of walking, 5 days a week\n`;
+  summary += `- Start slowly if you're new to exercise\n`;
+  summary += `- Take the stairs, park farther away, garden - every bit counts!\n\n`;
+  
+  summary += `**Daily Healthy Habits:**\n`;
+  summary += `- Get 7-8 hours of sleep each night\n`;
+  summary += `- Drink 6-8 glasses of water daily\n`;
+  summary += `- Manage stress through deep breathing, meditation, or hobbies\n`;
+  summary += `- Don't smoke - ask for help quitting if needed\n`;
+  summary += `- Limit alcohol\n\n`;
+  
+  summary += `**What to Monitor:**\n`;
+  if (diagnoses.some(d => d.toLowerCase().includes('diabetes'))) {
+    summary += `- Check blood sugar as directed by your doctor\n`;
+  }
+  if (diagnoses.some(d => d.toLowerCase().includes('hypertension') || d.toLowerCase().includes('pressure'))) {
+    summary += `- Monitor blood pressure at home regularly\n`;
+  }
+  summary += `- Track your weight weekly\n`;
+  summary += `- Note any new symptoms or concerns\n\n`;
+  
+  // Lab results
+  if (abnormalLabs.length > 0) {
+    summary += `## Understanding Your Lab Results\n\n`;
+    summary += `Some of your recent lab tests showed results outside the normal range:\n\n`;
+    abnormalLabs.forEach(lab => {
+      summary += `**${lab.test_name}:** ${lab.test_value} ${lab.test_unit} (Normal: ${lab.reference_range})\n`;
+    });
+    summary += `\nYour doctor will discuss these results with you and adjust your treatment plan as needed.\n\n`;
+  }
+  
+  // Important reminders
+  summary += `## Important Reminders\n\n`;
+  summary += `🔔 **Take Your Medications:**\nSet phone alarms or use a pill organizer to remember your medications. Never skip doses.\n\n`;
+  summary += `📅 **Keep Your Appointments:**\nRegular check-ups help catch problems early. Don't skip your follow-up visits.\n\n`;
+  summary += `⚠️ **When to Call Your Doctor:**\n`;
+  summary += `- Severe headache or chest pain\n`;
+  summary += `- Difficulty breathing\n`;
+  summary += `- Unusual swelling\n`;
+  summary += `- Dizziness or fainting\n`;
+  summary += `- Any new or worsening symptoms\n\n`;
+  summary += `💪 **You Can Do This!**\nManaging ${primaryCondition} takes effort, but small daily choices make a big difference. You're taking important steps for your health!\n\n`;
+  summary += `*This summary is for educational purposes. Always follow your doctor's specific advice for your situation.*`;
+  
+  return summary;
+}
 
 // Patient logout endpoint
 app.post('/api/patient-logout', async (c) => {

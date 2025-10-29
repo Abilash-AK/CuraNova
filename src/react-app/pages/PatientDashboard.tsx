@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router";
-import { User, FileText, Phone, Mail, Edit3, ArrowLeft, AlertCircle, Activity, TestTube } from "lucide-react";
+import { User, FileText, Phone, Mail, Edit3, ArrowLeft, AlertCircle, Activity, TestTube, Sparkles } from "lucide-react";
 import ThemeToggle from "@/react-app/components/ThemeToggle";
+import PatientHealthSummaryModal from "@/react-app/components/PatientHealthSummaryModal";
 import { useRole } from "@/react-app/contexts/RoleContext";
 import type { LabResult, MedicalRecord, PatientWithRecords } from "@/shared/types";
 
@@ -21,6 +22,7 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editMode, setEditMode] = useState(false);
+  const [showHealthSummary, setShowHealthSummary] = useState(false);
 
   useEffect(() => {
     document.body.style.fontFamily = "'Plus Jakarta Sans', 'Outfit', system-ui, sans-serif";
@@ -198,6 +200,15 @@ export default function PatientDashboard() {
                     <span className="text-sm text-gray-600 dark:text-gray-400">{patientData.phone || 'No phone on file'}</span>
                   </div>
                 </div>
+
+                {/* Health Summary Button */}
+                <button
+                  onClick={() => setShowHealthSummary(true)}
+                  className="w-full mt-4 btn-primary inline-flex items-center justify-center space-x-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>View My Health Summary</span>
+                </button>
               </div>
             </div>
           </div>
@@ -294,6 +305,15 @@ export default function PatientDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Health Summary Modal */}
+      {patientData?.medical_record_number && (
+        <PatientHealthSummaryModal
+          isOpen={showHealthSummary}
+          onClose={() => setShowHealthSummary(false)}
+          mrn={patientData.medical_record_number}
+        />
+      )}
     </div>
   );
 }
