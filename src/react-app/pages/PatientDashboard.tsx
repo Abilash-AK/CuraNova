@@ -254,7 +254,7 @@ export default function PatientDashboard() {
             {/* Lab Results */}
             <div className="card p-6">
               <div className="flex items-center space-x-3 mb-6">
-                <TestTube className="w-5 h-5 text-purple-600" />
+                <TestTube className="w-5 h-5 text-cyan-600" />
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Lab Results</h2>
               </div>
 

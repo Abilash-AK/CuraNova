@@ -87,7 +87,7 @@ export default function Login() {
       <div className="relative max-w-4xl w-full">
         {/* Header */}
         <div className="text-center mb-8 lg:mb-12">
-          <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-3xl flex items-center justify-center mx-auto mb-4 lg:mb-6 animate-float">
+          <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-3xl flex items-center justify-center mx-auto mb-4 lg:mb-6 animate-float">
             <Stethoscope className="w-8 h-8 lg:w-10 lg:h-10 text-white" />
           </div>
           <h1 className="text-3xl lg:text-4xl font-bold gradient-text mb-3 lg:mb-4">Welcome to CuraNova</h1>
@@ -119,8 +119,8 @@ export default function Login() {
                       <span className="text-secondary">AI-powered diagnostic assistance</span>
                     </div>
                     <div className="flex items-center space-x-3 text-xs lg:text-sm">
-                      <div className="w-5 h-5 lg:w-6 lg:h-6 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                        <Shield className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-purple-600" />
+                      <div className="w-5 h-5 lg:w-6 lg:h-6 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+                        <Shield className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-cyan-600" />
                       </div>
                       <span className="text-secondary">Similar patient case analysis</span>
                     </div>
@@ -166,8 +166,8 @@ export default function Login() {
                       <span className="text-secondary">Vital signs tracking</span>
                     </div>
                     <div className="flex items-center space-x-3 text-xs lg:text-sm">
-                      <div className="w-5 h-5 lg:w-6 lg:h-6 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                        <UserCheck className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-purple-600" />
+                      <div className="w-5 h-5 lg:w-6 lg:h-6 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+                        <UserCheck className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-cyan-600" />
                       </div>
                       <span className="text-secondary">Lab results monitoring</span>
                     </div>

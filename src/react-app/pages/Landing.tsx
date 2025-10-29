@@ -29,7 +29,7 @@ export default function Landing() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center animate-fade-in">
-          <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-float glow-intense">
+          <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 via-cyan-500 to-pink-500 rounded-3xl flex items-center justify-center mx-auto mb-8 animate-float glow-intense">
             <Stethoscope className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-3xl font-bold gradient-text mb-6">Welcome back to CuraNova</h1>
@@ -62,7 +62,7 @@ export default function Landing() {
           {/* Navigation */}
           <nav className="flex items-center justify-between mb-16">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-3xl flex items-center justify-center glow">
+              <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 via-cyan-500 to-pink-500 rounded-3xl flex items-center justify-center glow">
                 <Stethoscope className="w-7 h-7 text-white" />
               </div>
               <div>
@@ -117,7 +117,7 @@ export default function Landing() {
       <div className="py-32 px-6 relative">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 px-4 py-2 rounded-full border border-indigo-200/50 dark:border-indigo-700/50 mb-6">
+            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-indigo-50 to-cyan-50 dark:from-indigo-900/20 dark:to-cyan-900/20 px-4 py-2 rounded-full border border-indigo-200/50 dark:border-indigo-700/50 mb-6">
               <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               <span className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Revolutionary Technology</span>
             </div>
@@ -131,7 +131,7 @@ export default function Landing() {
 
           <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-10">
             <div className="card card-hover animate-slide-up text-center group">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 glow">
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-400 via-indigo-500 to-cyan-500 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 glow">
                 <Brain className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-primary mb-4">AI-Powered Insights</h3>
@@ -145,14 +145,14 @@ export default function Landing() {
             </div>
 
             <div className="card card-hover animate-slide-up text-center group" style={{ animationDelay: '0.2s' }}>
-              <div className="w-20 h-20 bg-gradient-to-r from-purple-400 via-pink-500 to-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 glow">
+              <div className="w-20 h-20 bg-gradient-to-r from-cyan-400 via-pink-500 to-rose-500 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 glow">
                 <Activity className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-primary mb-4">Smart Diagnostics</h3>
               <p className="text-secondary leading-relaxed text-lg mb-6">
                 Receive differential diagnosis suggestions, lab recommendations, and evidence-based treatment plans
               </p>
-              <div className="inline-flex items-center text-purple-600 dark:text-purple-400 font-semibold">
+              <div className="inline-flex items-center text-cyan-600 dark:text-cyan-400 font-semibold">
                 <span>Learn more</span>
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </div>
@@ -201,7 +201,7 @@ export default function Landing() {
             </div>
 
             <div className="card card-hover animate-slide-up text-center group" style={{ animationDelay: '1s' }}>
-              <div className="w-20 h-20 bg-gradient-to-r from-violet-400 via-purple-500 to-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 glow">
+              <div className="w-20 h-20 bg-gradient-to-r from-violet-400 via-cyan-500 to-indigo-500 rounded-3xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-300 glow">
                 <Globe className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-primary mb-4">Global Access</h3>
@@ -224,10 +224,10 @@ export default function Landing() {
         <div className="max-w-5xl mx-auto text-center">
           <div className="card glow-intense animate-fade-in p-12 relative overflow-hidden">
             {/* Background decoration */}
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/5 dark:via-purple-500/5 dark:to-pink-500/5"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-cyan-500/10 to-pink-500/10 dark:from-indigo-500/5 dark:via-cyan-500/5 dark:to-pink-500/5"></div>
             
             <div className="relative">
-              <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse-glow">
+              <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 via-cyan-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse-glow">
                 <Heart className="w-12 h-12 text-white" />
               </div>
               
@@ -263,7 +263,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center space-x-4 mb-6 md:mb-0">
-              <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-3xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 via-cyan-500 to-pink-500 rounded-3xl flex items-center justify-center">
                 <Stethoscope className="w-6 h-6 text-white" />
               </div>
               <div>

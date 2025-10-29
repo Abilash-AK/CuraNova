@@ -185,9 +185,9 @@ export default function AISummaryModal({ patient, isOpen, onClose }: AISummaryMo
             </div>
 
             {/* Health Trends */}
-            <div className="card bg-gradient-to-br from-purple-50 to-pink-50 border-purple-100">
+            <div className="card bg-gradient-to-br from-cyan-50 to-pink-50 border-cyan-100">
               <div className="flex items-center space-x-2 mb-4">
-                <TrendingUp className="w-5 h-5 text-purple-500" />
+                <TrendingUp className="w-5 h-5 text-cyan-500" />
                 <h3 className="text-lg font-semibold text-gray-800">Health Trends</h3>
               </div>
               <p className="text-gray-700 leading-relaxed">{summary.trends}</p>

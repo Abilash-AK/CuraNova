@@ -65,7 +65,7 @@ export default function PatientDetails() {
     return (
       <Layout>
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mx-auto"></div>
           <p className="text-secondary mt-4">Loading patient details...</p>
         </div>
       </Layout>
@@ -207,7 +207,7 @@ export default function PatientDetails() {
             {/* Basic Info */}
             <div className="card">
               <div className="text-center mb-6">
-                <div className="w-20 h-20 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-gradient-to-r from-indigo-400 to-cyan-500 rounded-3xl flex items-center justify-center mx-auto mb-4">
                   <span className="text-white font-bold text-2xl">
                     {isAnonymized ? "C" + (patient.id?.toString().slice(-1) || "X") : `${patient.first_name[0]}${patient.last_name[0]}`}
                   </span>
@@ -341,7 +341,7 @@ export default function PatientDetails() {
                   onClick={() => setShowAddLab(true)}
                   className="card card-hover p-4 text-center"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-3">
                     <FlaskConical className="w-5 h-5 text-white" />
                   </div>
                   <p className="text-sm font-medium text-primary">Add Lab Result</p>
@@ -392,7 +392,7 @@ export default function PatientDetails() {
                     onClick={() => setShowSyntheticCases(true)}
                     className="card card-hover p-4 text-center"
                   >
-                    <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-3">
                       <Lightbulb className="w-5 h-5 text-white" />
                     </div>
                     <p className="text-sm font-medium text-primary">Synthetic Cases</p>
@@ -535,7 +535,7 @@ export default function PatientDetails() {
             <div className="card">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-primary flex items-center space-x-2">
-                  <FlaskConical className="w-5 h-5 text-purple-500" />
+                  <FlaskConical className="w-5 h-5 text-cyan-500" />
                   <span>Lab Results</span>
                 </h3>
                 {!isAnonymized && (

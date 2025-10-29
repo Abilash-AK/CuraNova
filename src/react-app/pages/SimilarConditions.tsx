@@ -24,7 +24,7 @@ export default function SimilarConditions() {
           </p>
           
           <div className="space-y-4">
-            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 rounded-xl border border-indigo-200 dark:border-indigo-700 max-w-2xl mx-auto">
+            <div className="bg-gradient-to-r from-indigo-50 to-cyan-50 dark:from-indigo-900/20 dark:to-cyan-900/20 p-6 rounded-xl border border-indigo-200 dark:border-indigo-700 max-w-2xl mx-auto">
               <div className="flex items-center space-x-3 mb-3">
                 <FileText className="w-6 h-6 text-indigo-600" />
                 <h4 className="text-lg font-medium text-primary">How to Find Similar Cases</h4>

@@ -70,13 +70,13 @@ export default function AuthCallback() {
 
       <div className="relative text-center">
         <div className="card glow animate-fade-in max-w-md">
-          <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-3xl flex items-center justify-center mx-auto mb-6 animate-float">
+          <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-3xl flex items-center justify-center mx-auto mb-6 animate-float">
             <Stethoscope className="w-8 h-8 text-white" />
           </div>
           
           {isPending ? (
             <>
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mx-auto mb-4"></div>
               <h2 className="text-xl font-bold text-primary mb-2">Completing Sign In</h2>
               <p className="text-secondary">Setting up your Curanova workspace...</p>
             </>

@@ -36,7 +36,7 @@ export default function RoleSelection() {
       <div className="relative max-w-4xl w-full">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-3xl flex items-center justify-center mx-auto mb-6 animate-float">
+          <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-3xl flex items-center justify-center mx-auto mb-6 animate-float">
             <Stethoscope className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl font-bold gradient-text mb-4">Welcome to Curanova</h1>
@@ -63,8 +63,8 @@ export default function RoleSelection() {
                   <span className="text-secondary">AI-powered diagnostic assistance</span>
                 </div>
                 <div className="flex items-center space-x-3 text-sm">
-                  <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                    <Shield className="w-3 h-3 text-purple-600" />
+                  <div className="w-6 h-6 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+                    <Shield className="w-3 h-3 text-cyan-600" />
                   </div>
                   <span className="text-secondary">Similar patient case analysis</span>
                 </div>
@@ -106,8 +106,8 @@ export default function RoleSelection() {
                   <span className="text-secondary">Vital signs tracking</span>
                 </div>
                 <div className="flex items-center space-x-3 text-sm">
-                  <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                    <UserCheck className="w-3 h-3 text-purple-600" />
+                  <div className="w-6 h-6 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
+                    <UserCheck className="w-3 h-3 text-cyan-600" />
                   </div>
                   <span className="text-secondary">Lab results monitoring</span>
                 </div>

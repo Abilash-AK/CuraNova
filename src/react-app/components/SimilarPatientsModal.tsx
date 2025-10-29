@@ -239,7 +239,7 @@ export default function SimilarPatientsModal({
                                     key={index}
                                     className={`px-2 py-1 rounded-lg text-xs font-medium ${
                                       index === 0 ? 'bg-indigo-100 text-indigo-700' :
-                                      index === 1 ? 'bg-purple-100 text-purple-700' :
+                                      index === 1 ? 'bg-cyan-100 text-cyan-700' :
                                       index === 2 ? 'bg-pink-100 text-pink-700' :
                                       'bg-blue-100 text-blue-700'
                                     }`}

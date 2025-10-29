@@ -119,7 +119,7 @@ export default function Layout({ children }: LayoutProps) {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
             <Link to="/dashboard" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-2xl flex items-center justify-center">
                 <Stethoscope className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -146,7 +146,7 @@ export default function Layout({ children }: LayoutProps) {
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                     isActive(item.href)
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                      ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white shadow-lg'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
                   }`}
                 >

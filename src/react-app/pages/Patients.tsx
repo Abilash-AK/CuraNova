@@ -66,7 +66,7 @@ export default function Patients() {
         <div className="card">
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mx-auto"></div>
               <p className="text-secondary mt-4">Loading patients...</p>
             </div>
           ) : error ? (
@@ -123,7 +123,7 @@ export default function Patients() {
                 {searchQuery && (
                   <button 
                     onClick={() => handleSearch('')}
-                    className="text-purple-600 hover:text-purple-700 text-sm font-medium"
+                    className="text-cyan-600 hover:text-cyan-700 text-sm font-medium"
                   >
                     Clear search
                   </button>
@@ -136,17 +136,17 @@ export default function Patients() {
                   <Link
                     key={patient.id}
                     to={`/patients/${patient.id}`}
-                    className="block p-6 rounded-2xl border border-gray-100 hover:border-purple-200 hover:bg-purple-50/30 transition-all duration-300 group"
+                    className="block p-6 rounded-2xl border border-gray-100 hover:border-cyan-200 hover:bg-cyan-50/30 transition-all duration-300 group"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-2xl flex items-center justify-center">
+                        <div className="w-12 h-12 bg-gradient-to-r from-indigo-400 to-cyan-500 rounded-2xl flex items-center justify-center">
                           <span className="text-white font-semibold">
                             {patient.first_name[0]}{patient.last_name[0]}
                           </span>
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-primary group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                          <h3 className="font-semibold text-primary group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
                             {patient.first_name} {patient.last_name}
                           </h3>
                           <div className="flex items-center space-x-4 mt-1 text-sm text-secondary">
@@ -181,7 +181,7 @@ export default function Patients() {
                             day: 'numeric'
                           }) : 'Recently'}
                         </p>
-                        <p className="text-sm text-purple-600 dark:text-purple-400 font-medium group-hover:text-purple-700 dark:group-hover:text-purple-300">
+                        <p className="text-sm text-cyan-600 dark:text-cyan-400 font-medium group-hover:text-cyan-700 dark:group-hover:text-cyan-300">
                           View Details →
                         </p>
                       </div>

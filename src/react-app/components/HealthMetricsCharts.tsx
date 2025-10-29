@@ -33,33 +33,35 @@ export default function HealthMetricsCharts({ medicalRecords, labResults }: Heal
     label?: string | number;
   };
 
-  // Process vital signs data
+  // Process vital signs data - Sort first, then format dates to prevent date parsing issues
   const vitalsData = medicalRecords
     .filter(record => record.blood_pressure_systolic || record.heart_rate || record.temperature)
-    .map(record => ({
+    .sort((a, b) => new Date(a.visit_date).getTime() - new Date(b.visit_date).getTime())
+    .slice(-10) // Show last 10 readings
+    .map((record, index) => ({
       date: new Date(record.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      id: `vital-${index}-${new Date(record.visit_date).getTime()}`,
       systolic: record.blood_pressure_systolic || undefined,
       diastolic: record.blood_pressure_diastolic || undefined,
       heartRate: record.heart_rate || undefined,
       temperature: record.temperature || undefined,
       weight: record.weight || undefined,
-    }))
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(-10); // Show last 10 readings
+    }));
 
-  // Process lab results data for common tests
+  // Process lab results data for common tests - Sort first, then format dates
   const processLabData = (testName: string) => {
     return labResults
       .filter(result => result.test_name.toLowerCase().includes(testName.toLowerCase()))
-      .map(result => ({
+      .sort((a, b) => new Date(a.test_date).getTime() - new Date(b.test_date).getTime())
+      .slice(-8)
+      .map((result, index) => ({
         date: new Date(result.test_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        id: `lab-${testName}-${index}-${new Date(result.test_date).getTime()}`,
         value: parseFloat(result.test_value) || 0,
         isAbnormal: result.is_abnormal,
         unit: result.test_unit || '',
         reference: result.reference_range || '',
-      }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(-8);
+      }));
   };
 
   const glucoseData = processLabData('glucose').length > 0 ? processLabData('glucose') : processLabData('sugar');

@@ -90,7 +90,7 @@ export default function EditPatientModal({
         <div className="sticky top-0 bg-white border-b border-gray-100 p-6 rounded-t-3xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-2xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-indigo-400 to-cyan-500 rounded-2xl flex items-center justify-center">
                 <User className="w-5 h-5 text-white" />
               </div>
               <div>

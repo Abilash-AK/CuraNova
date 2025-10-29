@@ -90,7 +90,7 @@ export default function EditLabResultModal({
       <div className="card max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-500 rounded-xl flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-pink-500 rounded-xl flex items-center justify-center">
               <FlaskConical className="w-4 h-4 text-white" />
             </div>
             <h2 className="text-xl font-semibold text-gray-800">Edit Lab Result</h2>

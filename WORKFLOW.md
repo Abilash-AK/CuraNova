@@ -955,7 +955,7 @@ Medical Literature Search Flow:
 │ COLOR PALETTE:                                                       │
 │ ├── Primary: Indigo (#6366F1) - Buttons, links                     │
 │ ├── Secondary: Green (#10B981) - Success states                    │
-│ ├── Accent: Purple (#8B5CF6) - Highlights                          │
+│ ├── Accent: Cyan/Turquoise (#06B6D4) - Highlights                  │
 │ ├── Danger: Red (#EF4444) - Errors, delete actions                 │
 │ └── Neutral: Slate (#64748B) - Text, borders                       │
 │                                                                      │

@@ -87,7 +87,7 @@ export default function AddLabResultModal({
         <div className="sticky top-0 bg-white border-b border-gray-100 p-6 rounded-t-3xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-pink-500 rounded-2xl flex items-center justify-center">
                 <FlaskConical className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -131,7 +131,7 @@ export default function AddLabResultModal({
                   onChange={handleChange}
                   placeholder="e.g., Complete Blood Count"
                   required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-black dark:text-black dark:bg-white/90"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 text-black dark:text-black dark:bg-white/90"
                 />
               </div>
               
@@ -145,7 +145,7 @@ export default function AddLabResultModal({
                   value={formData.test_date}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-black dark:text-black dark:bg-white/90"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 text-black dark:text-black dark:bg-white/90"
                 />
               </div>
             </div>
@@ -160,7 +160,7 @@ export default function AddLabResultModal({
                 value={formData.doctor_name}
                 onChange={handleChange}
                 placeholder="e.g., Dr. Johnson"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-black dark:text-black dark:bg-white/90"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 text-black dark:text-black dark:bg-white/90"
               />
             </div>
           </div>
@@ -181,7 +181,7 @@ export default function AddLabResultModal({
                   onChange={handleChange}
                   placeholder="e.g., 7.2, Normal, Positive"
                   required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-black dark:text-black dark:bg-white/90"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 text-black dark:text-black dark:bg-white/90"
                 />
               </div>
               
@@ -195,7 +195,7 @@ export default function AddLabResultModal({
                   value={formData.test_unit}
                   onChange={handleChange}
                   placeholder="e.g., mg/dL, g/dL, %"
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-black dark:text-black dark:bg-white/90"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 text-black dark:text-black dark:bg-white/90"
                 />
               </div>
             </div>
@@ -210,7 +210,7 @@ export default function AddLabResultModal({
                 value={formData.reference_range}
                 onChange={handleChange}
                 placeholder="e.g., 4.0-10.0, Normal: <100"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-black dark:text-black dark:bg-white/90"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 text-black dark:text-black dark:bg-white/90"
               />
             </div>
 
@@ -221,7 +221,7 @@ export default function AddLabResultModal({
                 id="is_abnormal"
                 checked={formData.is_abnormal}
                 onChange={handleChange}
-                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                className="w-4 h-4 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500"
               />
               <label htmlFor="is_abnormal" className="text-sm font-medium text-black">
                 Mark as abnormal result
@@ -252,7 +252,7 @@ export default function AddLabResultModal({
                     test_name: test.name,
                     test_unit: test.unit
                   }))}
-                  className="text-xs px-3 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors"
+                  className="text-xs px-3 py-2 bg-cyan-50 text-cyan-700 rounded-lg hover:bg-cyan-100 transition-colors"
                 >
                   {test.name}
                 </button>

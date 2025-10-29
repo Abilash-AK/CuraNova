@@ -80,7 +80,7 @@ export default function SyntheticCasesModal({ isOpen, onClose, patientId }: Synt
     switch (complexity) {
       case "simple": return "text-green-700 bg-green-100 border-green-200";
       case "moderate": return "text-blue-700 bg-blue-100 border-blue-200";
-      case "complex": return "text-purple-700 bg-purple-100 border-purple-200";
+      case "complex": return "text-cyan-700 bg-cyan-100 border-cyan-200";
       default: return "text-gray-700 bg-gray-100 border-gray-200";
     }
   };
@@ -101,7 +101,7 @@ export default function SyntheticCasesModal({ isOpen, onClose, patientId }: Synt
           <div className="p-6 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-indigo-500 rounded-2xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-indigo-500 rounded-2xl flex items-center justify-center">
                   <Lightbulb className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -125,7 +125,7 @@ export default function SyntheticCasesModal({ isOpen, onClose, patientId }: Synt
                   <select
                     value={complexity}
                     onChange={(e) => setComplexity(e.target.value)}
-                    className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
                   >
                     <option value="simple">Simple</option>
                     <option value="moderate">Moderate</option>
@@ -137,7 +137,7 @@ export default function SyntheticCasesModal({ isOpen, onClose, patientId }: Synt
                   <select
                     value={caseCount}
                     onChange={(e) => setCaseCount(Number(e.target.value))}
-                    className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
                   >
                     <option value={2}>2 Cases</option>
                     <option value={3}>3 Cases</option>
@@ -155,12 +155,12 @@ export default function SyntheticCasesModal({ isOpen, onClose, patientId }: Synt
                 </button>
               </div>
 
-              <div className="text-xs text-gray-500 bg-purple-50 p-3 rounded-xl">
+              <div className="text-xs text-gray-500 bg-cyan-50 p-3 rounded-xl">
                 <div className="flex items-start space-x-2">
-                  <Sparkles className="w-4 h-4 text-purple-500 mt-0.5" />
+                  <Sparkles className="w-4 h-4 text-cyan-500 mt-0.5" />
                   <div>
-                    <p className="font-medium text-purple-800">Educational Case Generation</p>
-                    <p className="text-purple-600">
+                    <p className="font-medium text-cyan-800">Educational Case Generation</p>
+                    <p className="text-cyan-600">
                       AI creates realistic educational scenarios based on the current patient's medical profile for teaching and learning purposes.
                     </p>
                   </div>
@@ -172,11 +172,11 @@ export default function SyntheticCasesModal({ isOpen, onClose, patientId }: Synt
           <div className="flex-1 overflow-y-auto p-6">
             {loading && (
               <div className="text-center py-12">
-                <div className="inline-flex items-center space-x-3 bg-gradient-to-r from-purple-50 to-indigo-50 px-6 py-4 rounded-2xl border border-purple-100 mb-4">
-                  <Loader2 className="w-6 h-6 text-purple-500 animate-spin" />
+                <div className="inline-flex items-center space-x-3 bg-gradient-to-r from-cyan-50 to-indigo-50 px-6 py-4 rounded-2xl border border-cyan-100 mb-4">
+                  <Loader2 className="w-6 h-6 text-cyan-500 animate-spin" />
                   <div className="text-left">
-                    <p className="font-medium text-purple-800">Generating Educational Cases</p>
-                    <p className="text-sm text-purple-600">AI is creating synthetic case scenarios...</p>
+                    <p className="font-medium text-cyan-800">Generating Educational Cases</p>
+                    <p className="text-sm text-cyan-600">AI is creating synthetic case scenarios...</p>
                   </div>
                 </div>
               </div>
@@ -326,9 +326,9 @@ export default function SyntheticCasesModal({ isOpen, onClose, patientId }: Synt
               </div>
 
               {/* Clinical Scenario */}
-              <div className="card bg-gradient-to-br from-purple-50 to-pink-50 border-purple-100">
+              <div className="card bg-gradient-to-br from-cyan-50 to-pink-50 border-cyan-100">
                 <h4 className="font-semibold text-gray-800 mb-3 flex items-center space-x-2">
-                  <GraduationCap className="w-4 h-4 text-purple-500" />
+                  <GraduationCap className="w-4 h-4 text-cyan-500" />
                   <span>Clinical Scenario</span>
                 </h4>
                 <p className="text-gray-700 leading-relaxed">{selectedCase.clinical_scenario}</p>

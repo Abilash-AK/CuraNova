@@ -22,7 +22,7 @@ export default function RoleProtectedRoute({
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin mx-auto mb-4">
-            <Loader2 className="w-12 h-12 text-purple-500" />
+            <Loader2 className="w-12 h-12 text-cyan-500" />
           </div>
           <p className="text-gray-600 font-medium">Authenticating...</p>
         </div>
