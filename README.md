@@ -246,7 +246,7 @@ Use the following email aliases when configuring Google OAuth test users:
 
 - `firstname.01.doctor@gmail.com` → Doctor access
 - `firstname.02.nurse@gmail.com` → Nurse access
-- `firstname.03.patient@gmail.com` → Patient portal access
+
 
 These patterns map automatically to role permissions inside the worker.
 
