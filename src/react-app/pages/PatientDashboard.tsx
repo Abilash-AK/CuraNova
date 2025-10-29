@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router";
-import { User, FileText, Phone, Mail, Edit3, ArrowLeft, AlertCircle, Activity, TestTube, Sparkles } from "lucide-react";
+import { User, FileText, Phone, Mail, ArrowLeft, AlertCircle, Activity, TestTube, Sparkles } from "lucide-react";
 import ThemeToggle from "@/react-app/components/ThemeToggle";
 import PatientHealthSummaryModal from "@/react-app/components/PatientHealthSummaryModal";
 import { useRole } from "@/react-app/contexts/RoleContext";
@@ -21,7 +21,6 @@ export default function PatientDashboard() {
   const [patientData, setPatientData] = useState<PatientData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [editMode, setEditMode] = useState(false);
   const [showHealthSummary, setShowHealthSummary] = useState(false);
 
   useEffect(() => {
@@ -140,12 +139,6 @@ export default function PatientDashboard() {
             <div className="card p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Personal Information</h2>
-                <button
-                  onClick={() => setEditMode(!editMode)}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                >
-                  <Edit3 className="w-4 h-4" />
-                </button>
               </div>
 
               <div className="space-y-4">
