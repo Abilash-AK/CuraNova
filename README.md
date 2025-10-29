@@ -360,6 +360,10 @@ Ensure these secrets are configured in your Cloudflare Workers environment:
 - `GOOGLE_CLIENT_SECRET` - OAuth client secret from Google Cloud Console
 - `GOOGLE_REDIRECT_URI` - Authorized redirect URI (e.g., https://your-worker-domain/auth/callback)
 
+#### Email notifications (optional but recommended)
+- `SITE_URL` - The public URL of your app (e.g., `https://curanova.example.com`). Used to build login links in emails.
+- `EMAIL_FROM` - Sender email address for notifications (e.g., `no-reply@yourdomain.com`). For best deliverability, use a domain proxied through Cloudflare and verified for outbound mail. Emails are sent via MailChannels from the Worker without an API key.
+
 **Important**: For production deployments, either:
 1. Host Ollama on a publicly accessible server with HTTPS and configure `OLLAMA_URL`, OR
 2. Use only the Gemini fallback by leaving `OLLAMA_URL` unset

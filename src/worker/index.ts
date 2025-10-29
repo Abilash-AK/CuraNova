@@ -10,6 +10,7 @@ import { PatientSchema, MedicalRecordSchema, LabResultSchema } from "../shared/t
 import type { DashboardStats } from "../shared/types";
 import type { Env } from "../../worker-configuration";
 import { OllamaClient, OllamaCache } from "./lib/ollama-client";
+import { sendEmailViaMailChannels, buildRecordAddedEmail } from "./lib/email";
 import { 
   MEDICAL_SYSTEM_PROMPT, 
   HEALTH_SUMMARY_PROMPT_TEMPLATE, 
@@ -17,6 +18,7 @@ import {
   buildPatientDataString,
   formatHealthSummaryForPatient
 } from "./lib/meditron-prompts";
+import { postToN8nWebhook } from "./lib/n8n";
 
 const SESSION_COOKIE_NAME = "curanova_session";
 const OAUTH_STATE_COOKIE_NAME = "curanova_oauth_state";
@@ -745,6 +747,70 @@ app.get('/api/oauth/google/redirect_url', async (c) => {
   }
 });
 
+// Dev/test: send a test email to verify configuration
+app.post("/api/dev/send-test-email", async (c) => {
+  try {
+    // Allow auth bypass in local dev only if explicitly requested
+    const unauthBypass = c.req.query("unauth") === "1";
+    const isLocalDev = (c.env.SITE_URL || "").includes("127.0.0.1");
+  const user = c.get("user") as AuthenticatedUser | undefined;
+    if (!user && !(unauthBypass && isLocalDev)) {
+      // Try auth if not bypassed
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+  const body = (await c.req.json().catch(() => ({ to: "" }))) as { to: string; name?: string };
+  const to = body?.to?.trim?.();
+    if (!to) return c.json({ error: "Missing 'to' in JSON body" }, 400);
+
+    const { subject, html, text } = buildRecordAddedEmail(
+      c.env.SITE_URL || "http://localhost:5173",
+      (body && body.name) || user?.email || "CuraNova User",
+      "TESTMRN",
+      new Date().toISOString(),
+      "Dr. Test"
+    );
+
+    const result = await sendEmailViaMailChannels(c.env, {
+      toEmail: to,
+  toName: (body && body.name) || undefined,
+      subject,
+      html,
+      text,
+    });
+    const includeDetails = c.req.query('details') === '1';
+    if (includeDetails) {
+      return c.json({ success: result.ok, details: result });
+    }
+    return c.json({ success: result.ok });
+  } catch (error) {
+    console.error("send-test-email failed", error);
+    return c.json({ error: "send-test-email failed" }, 500);
+  }
+});
+
+// Dev/test: trigger n8n webhook with a sample payload
+app.post("/api/dev/test-n8n", async (c) => {
+  try {
+    const includeDetails = c.req.query("details") === "1";
+    const body = (await c.req.json().catch(() => ({}))) as Record<string, unknown>;
+    const payload = {
+      page: (c.env.SITE_URL || "").replace(/\/$/, "") + "/patients/123",
+      ui_action: "AddMedicalRecordModal.submit",
+      patient: { id: 123, name: "Test Patient", email: "patient@example.com", mrn: "TST123" },
+      record: { visit_date: new Date().toISOString().slice(0, 10), diagnosis: "Test Dx" },
+      ...(body || {}),
+    };
+    const useTest = Boolean(c.env.N8N_WEBHOOK_TEST_URL);
+    const res = await postToN8nWebhook(c.env, "record-added", payload, { test: useTest });
+    if (includeDetails) return c.json({ success: res.ok, details: res });
+    return c.json({ success: res.ok });
+  } catch (error) {
+    console.error("test-n8n failed", error);
+    return c.json({ error: "test-n8n failed" }, 500);
+  }
+});
+
 // Patient portal login - MRN + DOB validation
 app.post('/api/patient-login', async (c) => {
   try {
@@ -1267,6 +1333,18 @@ app.post("/api/patients/:id/medical-records", authMiddleware, zValidator("json",
     }
     const patientId = c.req.param("id");
     const recordData = c.req.valid("json");
+    // Fetch patient contact to notify after creation
+    const patient = await c.env.DB
+      .prepare(
+        "SELECT first_name, last_name, email, medical_record_number FROM patients WHERE id = ?"
+      )
+      .bind(patientId)
+      .first<{
+        first_name: string;
+        last_name: string;
+        email: string | null;
+        medical_record_number: string | null;
+      }>();
     
     const result = await c.env.DB.prepare(`
       INSERT INTO medical_records (
@@ -1293,6 +1371,81 @@ app.post("/api/patients/:id/medical-records", authMiddleware, zValidator("json",
       recordData.doctor_name || null
     ).run();
     
+    // Fire-and-forget email notification (do not block API)
+    if (patient?.email && c.env.SITE_URL) {
+      const fullName = `${patient.first_name} ${patient.last_name}`.trim();
+      const { subject, html, text } = buildRecordAddedEmail(
+        c.env.SITE_URL,
+        fullName,
+        patient.medical_record_number || "",
+        recordData.visit_date,
+        recordData.doctor_name || undefined
+      );
+      // Use waitUntil so the worker can respond immediately
+      c.executionCtx.waitUntil(
+        (async () => {
+          try {
+            const res = await sendEmailViaMailChannels(c.env, {
+              toEmail: patient.email!,
+              toName: fullName,
+              subject,
+              html,
+              text,
+            });
+            if (!res.ok) {
+              console.error("Email send result (medical-record)", res);
+            }
+          } catch (err) {
+            console.error("Email send failed (medical-record)", err);
+          }
+        })()
+      );
+    }
+
+    // Fire-and-forget n8n webhook notification of record-added
+    c.executionCtx.waitUntil(
+      (async () => {
+        try {
+          const pageUrl = c.env.SITE_URL ? `${c.env.SITE_URL.replace(/\/$/, "")}/patients/${patientId}` : undefined;
+          const n8nPayload = {
+            page: pageUrl,
+            ui_action: "AddMedicalRecordModal.submit",
+            user: { id: user.id, email: user.email, role: user.role },
+            patient: {
+              id: patientId,
+              name: patient ? `${patient.first_name} ${patient.last_name}`.trim() : undefined,
+              email: patient?.email ?? undefined,
+              mrn: patient?.medical_record_number ?? undefined,
+            },
+            record: {
+              visit_date: recordData.visit_date,
+              chief_complaint: recordData.chief_complaint ?? null,
+              diagnosis: recordData.diagnosis ?? null,
+              prescription: recordData.prescription ?? null,
+              doctor_name: recordData.doctor_name ?? null,
+              vitals: {
+                bp_systolic: recordData.blood_pressure_systolic ?? null,
+                bp_diastolic: recordData.blood_pressure_diastolic ?? null,
+                heart_rate: recordData.heart_rate ?? null,
+                temperature: recordData.temperature ?? null,
+                weight: recordData.weight ?? null,
+                height: recordData.height ?? null,
+                blood_sugar: recordData.blood_sugar ?? null,
+                cholesterol: recordData.cholesterol ?? null,
+              },
+            },
+          };
+          const useTest = Boolean(c.env.N8N_WEBHOOK_TEST_URL);
+          const res = await postToN8nWebhook(c.env, "record-added", n8nPayload, { test: useTest });
+          if (!res.ok) {
+            console.error("n8n webhook post failed", res);
+          }
+        } catch (err) {
+          console.error("n8n webhook post threw", err);
+        }
+      })()
+    );
+
     return c.json({ id: result.meta.last_row_id, ...recordData }, 201);
   } catch (error) {
     logError("Failed to create medical record", error);

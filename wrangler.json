@@ -7,6 +7,13 @@
   "observability": {
     "enabled": true
   },
+  "vars": {
+    "SITE_URL": "https://example.com",
+    "EMAIL_FROM": "no-reply@example.com",
+    "N8N_WEBHOOK_TEST_URL": "https://curanova0ak.app.n8n.cloud/webhook-test/curanova/record-added",
+    "N8N_WEBHOOK_URL": "https://curanova0ak.app.n8n.cloud/webhook/curanova/record-added",
+    "N8N_TOKEN": ""
+  },
   "upload_source_maps": true,
   "assets": {
     "directory": "dist",

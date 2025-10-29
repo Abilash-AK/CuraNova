@@ -12,8 +12,7 @@ import {
   Menu,
   X,
   MessageCircle,
-  ChevronLeft,
-  ChevronRight
+  
 } from "lucide-react";
 import { useState } from "react";
 
@@ -27,8 +26,8 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // When true, the sidebar is pinned (expanded). Default: collapsed on large screens.
-  const [sidebarPinned, setSidebarPinned] = useState(false);
+  // Sidebar is no longer pinnable via UI; keep collapsed-by-default behavior on desktop and expand on hover.
+  const sidebarPinned = false;
   const [chatbotOpen, setChatbotOpen] = useState(false);
 
   // Check for demo user
@@ -133,15 +132,6 @@ export default function Layout({ children }: LayoutProps) {
             </Link>
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => setSidebarPinned((p) => !p)}
-                className="hidden lg:inline-flex p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"
-                aria-pressed={sidebarPinned}
-                title={sidebarPinned ? 'Collapse sidebar' : 'Expand sidebar'}
-              >
-                {sidebarPinned ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              </button>
-
-              <button
                 onClick={() => setSidebarOpen(false)}
                 className="lg:hidden p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"
               >
@@ -194,12 +184,21 @@ export default function Layout({ children }: LayoutProps) {
             
             <div className="flex items-center justify-between">
               <ThemeToggle />
+              {/*
+                Logout visibility rules:
+                - Mobile (smaller than lg): always visible when sidebar is open
+                - Desktop (lg and up):
+                  • If sidebar is pinned (expanded), always visible
+                  • If sidebar is collapsed, hide by default and show on sidebar hover (group-hover)
+              */}
               <button
                 onClick={handleLogout}
-                className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                className={`flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200
+                  ${sidebarPinned ? 'lg:flex' : 'lg:hidden lg:group-hover:flex'}`}
+                aria-label="Logout"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                <span className={`${sidebarPinned ? 'opacity-100' : 'opacity-100 lg:opacity-0 lg:group-hover:opacity-100'} transition-opacity duration-200`}>Logout</span>
               </button>
             </div>
           </div>
