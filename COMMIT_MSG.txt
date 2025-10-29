@@ -1,0 +1,6 @@
+Add patient MRN+DOB login and UI updates
+
+- Add /api/patient-login endpoint to validate MRN + DOB and create a patient session
+- Add /api/patient-data/:mrn endpoint to return patient records for authenticated patient sessions
+- Update Login UI to collect DOB for patient portal
+- Add collapsible sidebar, responsive Patients search layout, and input focus color fix

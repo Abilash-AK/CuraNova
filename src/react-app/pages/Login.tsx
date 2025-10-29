@@ -8,6 +8,7 @@ export default function Login() {
   const { user, redirectToLogin, isFetching } = useAuth();
   const [selectedRole, setSelectedRole] = useState<'doctor' | 'nurse' | 'patient' | null>(null);
   const [mrnNumber, setMrnNumber] = useState('');
+  const [dob, setDob] = useState('');
   const [patientLoginError, setPatientLoginError] = useState('');
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function Login() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ mrn: mrnNumber.trim() }),
+        body: JSON.stringify({ mrn: mrnNumber.trim(), dob: dob.trim() }),
         credentials: 'include',
       });
 
@@ -260,6 +261,18 @@ export default function Login() {
                         setPatientLoginError('');
                       }}
                       placeholder="Enter your MRN"
+                      className="w-full px-4 py-3 bg-white dark:bg-white text-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
+                    />
+                  </div>
+                  <div className="text-left">
+                    <label htmlFor="dob" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Date of Birth
+                    </label>
+                    <input
+                      id="dob"
+                      type="date"
+                      value={dob}
+                      onChange={(e) => setDob(e.target.value)}
                       className="w-full px-4 py-3 bg-white dark:bg-white text-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors"
                     />
                   </div>

@@ -2,14 +2,13 @@ import Layout from "@/react-app/components/Layout";
 import { usePatients } from "@/react-app/hooks/useApi";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { 
-  Search, 
-  Plus, 
-  Users, 
-  Mail, 
-  Phone, 
+import {
+  Search,
+  Plus,
+  Users,
+  Mail,
+  Phone,
   Calendar,
-  Filter
 } from "lucide-react";
 
 export default function Patients() {
@@ -44,21 +43,15 @@ export default function Patients() {
 
         {/* Search and Filters */}
         <div className="card">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search patients by name, email, or phone..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="input-field pl-10"
-              />
-            </div>
-            <button className="btn-secondary inline-flex items-center space-x-2">
-              <Filter className="w-4 h-4" />
-              <span>Filter</span>
-            </button>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search patients by name, email, or phone..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="input-field pl-10"
+            />
           </div>
         </div>
 

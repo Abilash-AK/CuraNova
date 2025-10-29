@@ -244,3 +244,12 @@
 ::selection {
   @apply bg-cyan-200 dark:bg-cyan-700 text-cyan-900 dark:text-cyan-100;
 }
+
+/* Fix: ensure input/textarea/contenteditable text and caret remain visible on focus */
+input:focus,
+textarea:focus,
+.input-field:focus,
+[contenteditable]:focus {
+  color: #000 !important;
+  caret-color: #000 !important;
+}

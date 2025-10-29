@@ -745,6 +745,90 @@ app.get('/api/oauth/google/redirect_url', async (c) => {
   }
 });
 
+// Patient portal login - MRN + DOB validation
+app.post('/api/patient-login', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { mrn, dob } = body as { mrn?: string; dob?: string };
+
+    if (!mrn || !dob) {
+      return c.json({ error: 'MRN and date of birth are required' }, 400);
+    }
+
+    // Normalize dob to YYYY-MM-DD
+    const parsedDob = new Date(dob);
+    if (Number.isNaN(parsedDob.getTime())) {
+      return c.json({ error: 'Invalid date of birth format' }, 400);
+    }
+    const dobNormalized = parsedDob.toISOString().slice(0, 10);
+
+    // Find patient by medical_record_number
+    const patient = await c.env.DB.prepare(
+      'SELECT * FROM patients WHERE medical_record_number = ? LIMIT 1'
+    ).bind(mrn).first<any>();
+
+    if (!patient) {
+      return c.json({ error: 'Patient not found' }, 404);
+    }
+
+    const patientDob = patient.date_of_birth ? new Date(patient.date_of_birth).toISOString().slice(0, 10) : null;
+    if (!patientDob || patientDob !== dobNormalized) {
+      return c.json({ error: 'Invalid credentials' }, 401);
+    }
+
+    // Create a session token in active_sessions table (reuse same session flow as OAuth)
+    const sessionToken = crypto.randomUUID();
+    const userId = `patient:${patient.id}`;
+    const userEmail = patient.email || null;
+
+    await c.env.DB.prepare(`
+      INSERT INTO active_sessions (session_token, user_id, user_email, user_role, last_activity, created_at, updated_at)
+      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `).bind(sessionToken, userId, userEmail, 'patient').run();
+
+    const isSecure = isSecureRequest(c);
+    setCookie(c, SESSION_COOKIE_NAME, sessionToken, {
+      httpOnly: true,
+      path: '/',
+      sameSite: isSecure ? 'none' : 'lax',
+      secure: isSecure,
+      maxAge: 60 * 60 * 24, // 1 day
+    });
+
+    return c.json({ success: true, patientId: patient.id, mrn: patient.medical_record_number }, 200);
+  } catch (error) {
+    logError('Failed patient login', error);
+    return c.json({ error: 'Failed to login' }, 500);
+  }
+});
+
+// Patient data endpoint - requires session (patient) to be active
+app.get('/api/patient-data/:mrn', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user');
+    if (!user) return c.json({ error: 'Unauthorized' }, 401);
+    if (user.role !== 'patient') return c.json({ error: 'Forbidden' }, 403);
+
+    const mrn = c.req.param('mrn');
+    const patient = await c.env.DB.prepare('SELECT * FROM patients WHERE medical_record_number = ? LIMIT 1').bind(mrn).first<any>();
+    if (!patient) return c.json({ error: 'Patient not found' }, 404);
+
+    const [medicalRecords, labResults] = await Promise.all([
+      c.env.DB.prepare('SELECT * FROM medical_records WHERE patient_id = ? ORDER BY visit_date DESC').bind(patient.id).all(),
+      c.env.DB.prepare('SELECT * FROM lab_results WHERE patient_id = ? ORDER BY test_date DESC').bind(patient.id).all(),
+    ]);
+
+    return c.json({
+      ...patient,
+      medical_records: medicalRecords.results,
+      lab_results: labResults.results,
+    });
+  } catch (error) {
+    logError('Failed to fetch patient data', error);
+    return c.json({ error: 'Failed to fetch patient data' }, 500);
+  }
+});
+
 app.post("/api/sessions", async (c) => {
   try {
     const body = await c.req.json();

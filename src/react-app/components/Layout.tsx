@@ -11,8 +11,9 @@ import {
   LogOut,
   Menu,
   X,
-  Search,
-  MessageCircle
+  MessageCircle,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { useState } from "react";
 
@@ -26,6 +27,8 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // When true, the sidebar is pinned (expanded). Default: collapsed on large screens.
+  const [sidebarPinned, setSidebarPinned] = useState(false);
   const [chatbotOpen, setChatbotOpen] = useState(false);
 
   // Check for demo user
@@ -74,9 +77,6 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Patients', href: '/patients', icon: Users },
     { name: 'Add Patient', href: '/patients/add', icon: UserPlus },
-    ...(isDoctor ? [
-      { name: 'Similar Conditions', href: '/similar-conditions', icon: Search },
-    ] : []),
   ];
 
   const isActive = (href: string) => {
@@ -101,6 +101,10 @@ export default function Layout({ children }: LayoutProps) {
     return displayName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
   };
 
+  // Sidebar width: mobile open -> full (w-72). On large screens: pinned -> w-72, else collapsed w-20 and expands on hover.
+  const sidebarWidthClass = sidebarOpen ? 'w-72' : (sidebarPinned ? 'w-72' : 'w-20 lg:w-20 lg:hover:w-72');
+  const mainMarginClass = sidebarOpen || sidebarPinned ? 'lg:ml-72' : 'lg:ml-20';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Mobile sidebar backdrop */}
@@ -112,9 +116,9 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-gray-200 dark:border-slate-700 transform transition-transform duration-300 ease-in-out z-50 ${
+      <div className={`fixed inset-y-0 left-0 ${sidebarWidthClass} bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-gray-200 dark:border-slate-700 transform transition-all duration-300 ease-in-out z-50 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } lg:translate-x-0`}>
+      } lg:translate-x-0 group`}>
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
@@ -123,16 +127,27 @@ export default function Layout({ children }: LayoutProps) {
                 <Stethoscope className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold gradient-text">CuraNova</h1>
-                <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{role} Portal</p>
+                <h1 className={`text-lg font-bold gradient-text transition-opacity duration-200 ${sidebarPinned ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100'}`}>CuraNova</h1>
+                <p className={`text-xs text-gray-600 dark:text-gray-400 capitalize transition-opacity duration-200 ${sidebarPinned ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100'}`}>{role} Portal</p>
               </div>
             </Link>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setSidebarPinned((p) => !p)}
+                className="hidden lg:inline-flex p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"
+                aria-pressed={sidebarPinned}
+                title={sidebarPinned ? 'Collapse sidebar' : 'Expand sidebar'}
+              >
+                {sidebarPinned ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              </button>
+
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Navigation */}
@@ -144,14 +159,16 @@ export default function Layout({ children }: LayoutProps) {
                   key={item.name}
                   to={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                  className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 ${
                     isActive(item.href)
                       ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white shadow-lg'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{item.name}</span>
+                  <div className="flex items-center justify-center w-6">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className={`font-medium ml-3 transition-opacity duration-200 ${sidebarPinned ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100'}`}>{item.name}</span>
                 </Link>
               );
             })}
@@ -189,8 +206,8 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="lg:ml-72">
+  {/* Main content */}
+  <div className={mainMarginClass}>
         {/* Top bar */}
         <div className="sticky top-0 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-gray-200 dark:border-slate-700">
           <div className="px-4 sm:px-6 lg:px-8">
