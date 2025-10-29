@@ -51,7 +51,19 @@ export default function RoleProtectedRoute({
               <p><strong>For Nurses:</strong> Use format nursename.02.nurse@gmail.com</p>
             </div>
             <button
-              onClick={() => window.location.href = '/api/logout'}
+              onClick={async () => {
+                try {
+                  await fetch('/api/logout', {
+                    method: 'GET',
+                    credentials: 'include',
+                  });
+                } catch (error) {
+                  console.error('Logout failed:', error);
+                } finally {
+                  // Always redirect to login page regardless of API success
+                  window.location.href = '/login';
+                }
+              }}
               className="mt-6 btn-secondary w-full"
             >
               Sign Out
