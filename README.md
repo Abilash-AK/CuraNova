@@ -10,7 +10,7 @@
 
 ## 🏥 Overview
 
-CuraNova is a modern, HIPAA-compliant Electronic Medical Records (EMR) system with AI-powered clinical assistance. Features role-based access (Doctor/Nurse/Patient portals), Google OAuth authentication, and comprehensive patient management. Integrates **Meditron 7B medical AI** running locally via Ollama for $0-cost intelligent health summaries and medical chatbot assistance, with automatic fallback to cloud APIs. Built on Cloudflare Workers edge computing with React 19 frontend and D1 SQLite database. Includes PubMed literature search, similar patient matching, and real-time health metrics visualization. Deployed globally with <50ms latency.
+A contemporary, HIPAA compliant Electronic Medical Records system with clinical support enabled by AI. Includes role-based access (Doctor/Nurse/Patient portals), Google OAuth authentication, and complete patient management. Combines Meditron 7B medical AI executed locally through Ollama for $0-cost smart health summaries and medical chatbot support, with fallback to cloud APIs. Developed using Cloudflare Workers edge computing with React 19 frontend and D1 SQLite database. Features PubMed literature search, similar patient comparison, and real-time health metrics visualization. Served worldwide with <50ms latency.
 
 ## ✨ Features
 
