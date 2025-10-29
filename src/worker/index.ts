@@ -190,6 +190,7 @@ const buildDataDrivenSummary = (patient: any, medicalRecords: any[], labResults:
   const latestLab = labResults[0] ?? null;
   const abnormalLabs = labResults.filter((lab) => lab?.is_abnormal);
 
+  // Enhanced vital analysis
   const systolicValues = medicalRecords
     .map((record) => Number(record?.blood_pressure_systolic))
     .filter((value) => Number.isFinite(value));
@@ -198,76 +199,270 @@ const buildDataDrivenSummary = (patient: any, medicalRecords: any[], labResults:
     .filter((value) => Number.isFinite(value));
   const maxSystolic = systolicValues.length ? Math.max(...systolicValues) : null;
   const maxDiastolic = diastolicValues.length ? Math.max(...diastolicValues) : null;
+  const avgSystolic = systolicValues.length ? Math.round(systolicValues.reduce((a, b) => a + b, 0) / systolicValues.length) : null;
+  const avgDiastolic = diastolicValues.length ? Math.round(diastolicValues.reduce((a, b) => a + b, 0) / diastolicValues.length) : null;
 
+  // Weight and glucose trends
   const weights = medicalRecords
     .map((record) => Number(record?.weight))
     .filter((value) => Number.isFinite(value));
   const latestWeight = weights[0] ?? null;
   const earliestWeight = weights.length > 1 ? weights[weights.length - 1] : null;
   const weightTrend = latestWeight != null && earliestWeight != null ? latestWeight - earliestWeight : null;
+  
+  const glucoseValues = medicalRecords
+    .map((record) => Number(record?.blood_sugar))
+    .filter((value) => Number.isFinite(value));
+  const avgGlucose = glucoseValues.length ? Math.round(glucoseValues.reduce((a, b) => a + b, 0) / glucoseValues.length) : null;
+  
+  const cholesterolValues = medicalRecords
+    .map((record) => Number(record?.cholesterol))
+    .filter((value) => Number.isFinite(value));
+  const avgCholesterol = cholesterolValues.length ? Math.round(cholesterolValues.reduce((a, b) => a + b, 0) / cholesterolValues.length) : null;
 
   const overviewParts: string[] = [];
-  overviewParts.push(`${name} has ${visitCount} documented visit${visitCount === 1 ? "" : "s"}`);
-  overviewParts.push(`and ${labCount} lab result${labCount === 1 ? "" : "s"}.`);
+  overviewParts.push(`${name} has ${visitCount} documented visit${visitCount === 1 ? "" : "s"} spanning ${visitCount > 1 ? "multiple encounters" : "an initial evaluation"}`);
   if (latestVisit?.visit_date) {
-    overviewParts.push(`Most recent encounter was on ${formatDate(latestVisit.visit_date)}.`);
+    const daysSinceVisit = Math.floor((Date.now() - new Date(latestVisit.visit_date).getTime()) / (1000 * 60 * 60 * 24));
+    overviewParts.push(`with the most recent encounter ${daysSinceVisit < 30 ? `${daysSinceVisit} days ago` : `on ${formatDate(latestVisit.visit_date)}`}.`);
+  }
+  if (latestVisit?.diagnosis) {
+    overviewParts.push(`Current primary diagnosis: ${latestVisit.diagnosis}.`);
   }
 
   const keyFindings: string[] = [];
   if (latestVisit) {
-    const diagnosis = latestVisit.diagnosis || latestVisit.chief_complaint || "follow-up care";
-    keyFindings.push(`Latest visit (${formatDate(latestVisit.visit_date) ?? latestVisit.visit_date ?? "recent"}) focused on ${diagnosis}.`);
+    const bpStatus = latestVisit.blood_pressure_systolic && latestVisit.blood_pressure_diastolic 
+      ? `BP ${latestVisit.blood_pressure_systolic}/${latestVisit.blood_pressure_diastolic} mmHg`
+      : null;
+    const diagnosis = latestVisit.diagnosis || latestVisit.chief_complaint;
+    const visitSummary = [
+      `Visit on ${formatDate(latestVisit.visit_date)}`,
+      diagnosis ? `for ${diagnosis}` : null,
+      bpStatus,
+      latestVisit.prescription ? `prescribed ${latestVisit.prescription}` : null
+    ].filter(Boolean).join(', ');
+    keyFindings.push(visitSummary + '.');
   }
-  if (latestLab) {
-    keyFindings.push(`Recent lab panel (${formatDate(latestLab.test_date) ?? latestLab.test_date ?? "recent"}) included ${latestLab.test_name}${latestLab.test_value ? ` at ${latestLab.test_value}${latestLab.test_unit ?? ""}` : ""}.`);
+  
+  if (avgSystolic && avgDiastolic) {
+    const bpCategory = avgSystolic >= 140 || avgDiastolic >= 90 ? "hypertensive range" :
+                       avgSystolic >= 130 || avgDiastolic >= 80 ? "elevated" : "normal range";
+    keyFindings.push(`Average BP across encounters: ${avgSystolic}/${avgDiastolic} mmHg (${bpCategory}).`);
   }
+  
+  if (avgGlucose) {
+    const glucoseStatus = avgGlucose >= 126 ? "diabetic range" : avgGlucose >= 100 ? "prediabetic range" : "normal range";
+    keyFindings.push(`Mean fasting glucose: ${avgGlucose} mg/dL (${glucoseStatus}), monitored across ${glucoseValues.length} visit${glucoseValues.length > 1 ? 's' : ''}.`);
+  }
+  
   if (abnormalLabs.length) {
-    const highlighted = abnormalLabs.slice(0, 3).map((lab) => `${lab.test_name} (${lab.test_value}${lab.test_unit ?? ""})`);
-    keyFindings.push(`Abnormal results flagged: ${highlighted.join(", ")}.${abnormalLabs.length > 3 ? " Additional abnormalities present." : ""}`);
+    const criticalLabs = abnormalLabs.filter(lab => 
+      lab.test_name?.toLowerCase().includes('creatinine') ||
+      lab.test_name?.toLowerCase().includes('troponin') ||
+      lab.test_name?.toLowerCase().includes('bnp')
+    );
+    if (criticalLabs.length) {
+      const critical = criticalLabs[0];
+      keyFindings.push(`Critical abnormal: ${critical.test_name} at ${critical.test_value}${critical.test_unit ?? ""} on ${formatDate(critical.test_date)} (Ref: ${critical.reference_range}).`);
+    } else {
+      const lab = abnormalLabs[0];
+      keyFindings.push(`${abnormalLabs.length} abnormal lab${abnormalLabs.length > 1 ? 's' : ''} flagged, including ${lab.test_name}: ${lab.test_value}${lab.test_unit ?? ""} (${formatDate(lab.test_date)}).`);
+    }
   }
+  
+  if (labResults.length > 0) {
+    const hba1cLabs = labResults.filter(lab => lab.test_name?.toLowerCase().includes('hba1c') || lab.test_name?.toLowerCase().includes('a1c'));
+    if (hba1cLabs.length > 0) {
+      const latest = hba1cLabs[0];
+      keyFindings.push(`HbA1c: ${latest.test_value}% on ${formatDate(latest.test_date)}${Number(latest.test_value) >= 7 ? " (above target)" : " (at target)"}.`);
+    }
+  }
+  
   if (weights.length >= 2 && weightTrend) {
-    keyFindings.push(`Weight changed ${weightTrend > 0 ? "by +" : "by "}${Math.abs(weightTrend).toFixed(1)} units across recorded visits.`);
+    const percentChange = earliestWeight ? Math.abs((weightTrend / earliestWeight) * 100).toFixed(1) : null;
+    keyFindings.push(`Weight ${weightTrend > 0 ? "increased" : "decreased"} by ${Math.abs(weightTrend).toFixed(1)} units${percentChange ? ` (${percentChange}%)` : ""} over ${visitCount} visits.`);
   }
 
   const riskFactors: string[] = [];
+  
+  // Cardiovascular risk
   if (maxSystolic != null && maxDiastolic != null && (maxSystolic >= 140 || maxDiastolic >= 90)) {
-    riskFactors.push(`Blood pressure reached ${maxSystolic}/${maxDiastolic}, indicating hypertension risk that requires monitoring.`);
+    const stage = maxSystolic >= 160 || maxDiastolic >= 100 ? "Stage 2 hypertension" : "Stage 1 hypertension";
+    riskFactors.push(`${stage} detected with peak BP ${maxSystolic}/${maxDiastolic} mmHg; increases cardiovascular event risk by 2-4x.`);
   }
-  if (abnormalLabs.length) {
-    const riskLab = abnormalLabs[0];
-    riskFactors.push(`${riskLab.test_name} remains outside the reference range (${riskLab.test_value}${riskLab.test_unit ?? ""}); correlate with clinical findings.`);
+  
+  // Metabolic risk
+  if (avgCholesterol && avgCholesterol > 200) {
+    riskFactors.push(`Dyslipidemia with average total cholesterol ${avgCholesterol} mg/dL elevates ASCVD risk; statin consideration recommended.`);
   }
-  if (patient?.allergies) {
-    riskFactors.push(`Documented allergies: ${patient.allergies}. Ensure avoidance strategies and emergency plans remain current.`);
+  
+  if (avgGlucose && avgGlucose >= 100) {
+    const diabetesStatus = avgGlucose >= 126 ? "Type 2 diabetes" : "Prediabetes";
+    riskFactors.push(`${diabetesStatus} confirmed (avg glucose ${avgGlucose} mg/dL); risk for microvascular complications without intervention.`);
   }
-  if (latestVisit?.cholesterol && Number(latestVisit.cholesterol) > 200) {
-    riskFactors.push(`Total cholesterol recorded at ${latestVisit.cholesterol} mg/dL suggests cardiovascular risk elevation.`);
+  
+  // Lab-based risks
+  const kidneyLabs = abnormalLabs.filter(lab => 
+    lab.test_name?.toLowerCase().includes('creatinine') || 
+    lab.test_name?.toLowerCase().includes('egfr')
+  );
+  if (kidneyLabs.length) {
+    riskFactors.push(`Renal function abnormality: ${kidneyLabs[0].test_name} at ${kidneyLabs[0].test_value}${kidneyLabs[0].test_unit ?? ""}; monitor for CKD progression.`);
+  }
+  
+  const anemiaLabs = abnormalLabs.filter(lab => lab.test_name?.toLowerCase().includes('hemoglobin'));
+  if (anemiaLabs.length && Number(anemiaLabs[0].test_value) < 12) {
+    riskFactors.push(`Anemia detected (Hgb ${anemiaLabs[0].test_value} g/dL); evaluate for iron deficiency, chronic disease, or bleeding.`);
+  }
+  
+  // Allergy risks
+  if (patient?.allergies && patient.allergies.toLowerCase() !== 'none') {
+    const allergyList = patient.allergies.split(',').map((a: string) => a.trim()).slice(0, 3).join(', ');
+    riskFactors.push(`Documented allergies to ${allergyList}; contraindicate related drug classes and ensure emergency action plan.`);
+  }
+  
+  // Weight-based risks
+  if (weightTrend && weightTrend > 5) {
+    riskFactors.push(`Significant weight gain (+${weightTrend.toFixed(1)} units) may indicate fluid retention, medication effect, or metabolic dysregulation.`);
+  } else if (weightTrend && weightTrend < -5) {
+    riskFactors.push(`Unintentional weight loss (-${Math.abs(weightTrend).toFixed(1)} units) warrants malignancy screening, thyroid evaluation, or depression assessment.`);
+  }
+  
+  // Visit frequency risk
+  if (visitCount >= 2 && medicalRecords.length >= 2) {
+    const firstVisit = new Date(medicalRecords[medicalRecords.length - 1].visit_date);
+    const lastVisit = new Date(medicalRecords[0].visit_date);
+    const monthsSpan = (lastVisit.getTime() - firstVisit.getTime()) / (1000 * 60 * 60 * 24 * 30);
+    const visitsPerMonth = visitCount / Math.max(monthsSpan, 1);
+    if (visitsPerMonth > 1.5) {
+      riskFactors.push(`High visit frequency (${visitCount} visits over ${Math.round(monthsSpan)} months) suggests complex chronic disease or acute exacerbations.`);
+    }
   }
 
   const recommendations: string[] = [];
-  if (latestVisit) {
-    recommendations.push(`Schedule follow-up for ${formatDate(latestVisit.visit_date) ?? "the latest visit"} concerns to maintain continuity of care.`);
+  
+  // Prioritize critical abnormals
+  const criticalAbnormals = abnormalLabs.filter(lab => 
+    (lab.test_name?.toLowerCase().includes('creatinine') && Number(lab.test_value) > 2.0) ||
+    (lab.test_name?.toLowerCase().includes('troponin') && Number(lab.test_value) > 0.04) ||
+    (lab.test_name?.toLowerCase().includes('potassium') && (Number(lab.test_value) > 5.5 || Number(lab.test_value) < 3.0)) ||
+    (lab.test_name?.toLowerCase().includes('hemoglobin') && Number(lab.test_value) < 8)
+  );
+  
+  if (criticalAbnormals.length) {
+    recommendations.push(`URGENT: Repeat ${criticalAbnormals[0].test_name} within 24-48 hours given critical value (${criticalAbnormals[0].test_value}${criticalAbnormals[0].test_unit ?? ""}); consider specialist consult.`);
   }
-  if (maxSystolic != null && maxDiastolic != null && (maxSystolic >= 140 || maxDiastolic >= 90)) {
-    recommendations.push("Reinforce blood pressure management with lifestyle counseling and medication review.");
+  
+  // BP management
+  if (maxSystolic && maxDiastolic && (maxSystolic >= 140 || maxDiastolic >= 90)) {
+    if (avgSystolic && avgSystolic >= 140) {
+      recommendations.push(`Intensify hypertension therapy: current average BP ${avgSystolic}/${avgDiastolic} mmHg above target (<130/80); consider add-on agent or lifestyle intervention.`);
+    } else {
+      recommendations.push(`Home BP monitoring recommended to confirm office-based hypertension (peak ${maxSystolic}/${maxDiastolic}); rule out white coat effect.`);
+    }
   }
-  if (abnormalLabs.length) {
-    recommendations.push("Plan repeat testing and targeted interventions for abnormal lab trends.");
+  
+  // Diabetes/glucose control
+  if (avgGlucose && avgGlucose >= 126) {
+    const hba1cLab = labResults.find(lab => lab.test_name?.toLowerCase().includes('hba1c'));
+    if (hba1cLab && Number(hba1cLab.test_value) > 7) {
+      recommendations.push(`Glycemic control suboptimal (HbA1c ${hba1cLab.test_value}%); titrate therapy to target <7% and screen for micro/macrovascular complications.`);
+    } else {
+      recommendations.push(`Diabetes diagnosed (avg glucose ${avgGlucose} mg/dL); initiate HbA1c monitoring every 3 months and comprehensive diabetes education.`);
+    }
+  } else if (avgGlucose && avgGlucose >= 100) {
+    recommendations.push(`Prediabetes identified (avg glucose ${avgGlucose} mg/dL); prescribe lifestyle intervention (diet, exercise) and recheck glucose/HbA1c in 3-6 months.`);
   }
+  
+  // Lipid management
+  if (avgCholesterol && avgCholesterol > 200) {
+    recommendations.push(`Lipid panel optimization needed (avg cholesterol ${avgCholesterol} mg/dL); calculate 10-year ASCVD risk and consider statin initiation per guidelines.`);
+  }
+  
+  // Weight counseling
   if (weightTrend && Math.abs(weightTrend) >= 5) {
-    recommendations.push(`Discuss ${weightTrend > 0 ? "weight gain" : "weight loss"} of ${Math.abs(weightTrend).toFixed(1)} units with the patient to confirm intent and address contributing factors.`);
+    const direction = weightTrend > 0 ? "gain" : "loss";
+    recommendations.push(`Address ${direction} of ${Math.abs(weightTrend).toFixed(1)} units: review medications, dietary patterns, and screen for underlying metabolic/thyroid disorders.`);
+  }
+  
+  // Preventive care
+  const age = patient?.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : null;
+  if (age) {
+    if (age >= 50 && age < 75) {
+      recommendations.push(`Age-appropriate cancer screening: colonoscopy (if not current), annual lung CT if smoking history, mammography (if female).`);
+    }
+    if (age >= 40) {
+      recommendations.push(`Cardiovascular risk assessment: lipid panel annually, BP every visit, consider coronary calcium score if intermediate risk.`);
+    }
+  }
+  
+  // Follow-up timing
+  if (latestVisit) {
+    const daysSince = Math.floor((Date.now() - new Date(latestVisit.visit_date).getTime()) / (1000 * 60 * 60 * 24));
+    if (daysSince > 180 && (avgSystolic && avgSystolic >= 140 || avgGlucose && avgGlucose >= 126)) {
+      recommendations.push(`Overdue for chronic disease follow-up (last seen ${daysSince} days ago); schedule visit within 2-4 weeks for medication review and labs.`);
+    } else if (abnormalLabs.length > 0 && daysSince > 90) {
+      recommendations.push(`Follow-up abnormal labs from ${formatDate(latestVisit.visit_date)}; repeat testing and clinical correlation within 1 month.`);
+    }
   }
 
   const trendLines: string[] = [];
-  if (weights.length >= 2 && weightTrend) {
-    trendLines.push(`${weightTrend > 0 ? "Gradual weight gain" : "Weight reduction"} noted between earliest and latest encounters.`);
+  
+  // BP trajectory
+  if (systolicValues.length >= 3) {
+    const recent3 = systolicValues.slice(0, 3);
+    const older3 = systolicValues.length >= 6 ? systolicValues.slice(-3) : systolicValues.slice(Math.max(0, systolicValues.length - 3));
+    const recentAvg = recent3.reduce((a, b) => a + b, 0) / recent3.length;
+    const olderAvg = older3.reduce((a, b) => a + b, 0) / older3.length;
+    const bpChange = recentAvg - olderAvg;
+    
+    if (Math.abs(bpChange) >= 5) {
+      trendLines.push(`Blood pressure ${bpChange > 0 ? "rising" : "improving"} (${Math.abs(bpChange).toFixed(0)} mmHg change in systolic) over recent encounters; ${bpChange > 0 ? "escalate therapy" : "current regimen effective"}.`);
+    } else {
+      trendLines.push(`Blood pressure stable at average ${avgSystolic}/${avgDiastolic} mmHg across ${systolicValues.length} visits; maintain current management.`);
+    }
   }
-  if (systolicValues.length >= 2) {
-    const latestBp = `${latestVisit?.blood_pressure_systolic ?? "--"}/${latestVisit?.blood_pressure_diastolic ?? "--"}`;
-    trendLines.push(`Blood pressure trend currently at ${latestBp}; continue cardiovascular monitoring.`);
+  
+  // Weight trajectory
+  if (weights.length >= 3 && weightTrend) {
+    const monthsSpan = visitCount >= 2 ? 
+      (new Date(medicalRecords[0].visit_date).getTime() - new Date(medicalRecords[medicalRecords.length - 1].visit_date).getTime()) / (1000 * 60 * 60 * 24 * 30) : 1;
+    const weightChangePerMonth = weightTrend / Math.max(monthsSpan, 1);
+    
+    if (Math.abs(weightChangePerMonth) >= 1) {
+      trendLines.push(`Rapid weight ${weightTrend > 0 ? "gain" : "loss"} trajectory (${Math.abs(weightChangePerMonth).toFixed(1)} units/month); requires intervention to prevent metabolic complications.`);
+    } else {
+      trendLines.push(`Weight ${weightTrend > 0 ? "gradual increase" : "gradual decrease"} of ${Math.abs(weightTrend).toFixed(1)} units over ${Math.round(monthsSpan)} months; monitor for clinical significance.`);
+    }
   }
+  
+  // Glucose trajectory
+  if (glucoseValues.length >= 3) {
+    const recent3Glucose = glucoseValues.slice(0, 3);
+    const older3Glucose = glucoseValues.length >= 6 ? glucoseValues.slice(-3) : glucoseValues.slice(Math.max(0, glucoseValues.length - 3));
+    const recentGlucoseAvg = recent3Glucose.reduce((a, b) => a + b, 0) / recent3Glucose.length;
+    const olderGlucoseAvg = older3Glucose.reduce((a, b) => a + b, 0) / older3Glucose.length;
+    const glucoseChange = recentGlucoseAvg - olderGlucoseAvg;
+    
+    if (Math.abs(glucoseChange) >= 20) {
+      trendLines.push(`Glycemic control ${glucoseChange > 0 ? "deteriorating" : "improving significantly"} (${Math.abs(glucoseChange).toFixed(0)} mg/dL change); ${glucoseChange > 0 ? "urgent medication adjustment needed" : "lifestyle modifications working"}.`);
+    }
+  }
+  
+  // Lab monitoring gaps
+  if (labResults.length > 0) {
+    const lastLabDate = new Date(labResults[0].test_date);
+    const daysSinceLastLab = Math.floor((Date.now() - lastLabDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysSinceLastLab > 180 && (avgGlucose && avgGlucose >= 100 || avgSystolic && avgSystolic >= 130)) {
+      trendLines.push(`Laboratory monitoring gap: last labs ${daysSinceLastLab} days ago; chronic disease management requires quarterly surveillance.`);
+    }
+  }
+  
+  // Default if limited data
   if (!trendLines.length) {
-    trendLines.push("Clinical data remain limited; continue structured documentation to improve longitudinal insight.");
+    trendLines.push(`Longitudinal data limited to ${visitCount} encounter${visitCount > 1 ? 's' : ''}; establish regular follow-up schedule to enable meaningful trend analysis and proactive disease management.`);
   }
 
   const ensureLength = (items: string[], fallbackItems: string[]): string[] => {
@@ -1880,22 +2075,53 @@ app.post("/api/patients/:id/ai-summary", authMiddleware, async (c) => {
       labResults: labResults.results || [],
     };
 
-    const prompt = `As a medical AI assistant, analyze the following patient data and provide a comprehensive health summary. Focus on clinical insights, patterns, and actionable recommendations.
+    const prompt = `You are an experienced clinical AI assistant analyzing electronic medical records for a healthcare provider. Generate a clinically actionable, data-driven health summary.
 
-Patient Data:
+PATIENT CONTEXT:
 ${JSON.stringify(medicalData, null, 2)}
 
-Baseline structured summary derived from the data:
-${JSON.stringify(fallbackSummary, null, 2)}
+CLINICAL ANALYSIS REQUIREMENTS:
 
-Please provide a structured analysis with:
-1. Clinical overview (2-3 sentences)
-2. Key findings (3-4 bullet points)
-3. Risk factors (3-4 bullet points)
-4. Evidence-based recommendations (3-4 bullet points)
-5. Health trends analysis (2-3 sentences)
+1. OVERVIEW (2-3 sentences):
+   - Synthesize the patient's PRIMARY medical conditions and their current status
+   - Highlight the most recent visit's clinical significance
+   - Note any care continuity patterns (regular follow-ups vs sporadic care)
 
-Return ONLY a valid JSON object with this exact structure:
+2. KEY FINDINGS (3-5 specific, data-driven points):
+   - Cite ACTUAL vitals, lab values, and diagnoses with dates
+   - Identify disease progression or stability with specific metrics
+   - Flag any critical abnormal results requiring immediate attention
+   - Note medication adherence patterns if evident from visit frequency
+   - Highlight any multi-system involvement or comorbidities
+
+3. RISK FACTORS (3-5 evidence-based clinical risks):
+   - List modifiable vs non-modifiable risk factors present
+   - Quantify cardiovascular risk based on BP, lipids, diabetes markers
+   - Identify complications already present (retinopathy, neuropathy, nephropathy)
+   - Note lifestyle factors documented (obesity, smoking references)
+   - Highlight medication interactions or contraindications based on allergies
+
+4. RECOMMENDATIONS (3-5 prioritized, specific actions):
+   - Prioritize by clinical urgency (address critical abnormals first)
+   - Suggest specific follow-up timelines based on disease severity
+   - Recommend specific diagnostic tests or specialist referrals
+   - Propose evidence-based medication adjustments if patterns suggest poor control
+   - Include preventive measures aligned with current guidelines (vaccinations, screenings)
+
+5. TRENDS (2-3 sentences with trajectory analysis):
+   - Analyze changes in vitals over time (improving, worsening, stable)
+   - Evaluate glycemic/BP/lipid control trajectory if relevant
+   - Assess weight trends and their clinical implications
+   - Note gaps in care or monitoring that need addressing
+
+CRITICAL INSTRUCTIONS:
+- Use SPECIFIC data points (e.g., "HbA1c 8.5% on Jan 15" not "elevated blood sugar")
+- Reference actual visit dates and test dates
+- Avoid generic statements; make every point actionable and measurable
+- If data is limited, explicitly state the gaps and recommend filling them
+- Focus on the most clinically significant 3-6 month trajectory
+
+Return ONLY valid JSON in this structure (no markdown, no explanations):
 {
   "overview": "string",
   "key_findings": ["string1", "string2", "string3", "string4"],
