@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CuraNova - Smart AI EMR Presentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+        
+        :root {
+            --primary: #6366F1;
+            --secondary: #10B981;
+            --accent: #F59E0B;
+            --danger: #EF4444;
+            --dark: #1E293B;
+            --light: #F8FAFC;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #ffffff;
+        }
+
+        .reveal {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .reveal .slides {
+            text-align: center;
+        }
+
+        .reveal .slides section {
+            height: 100vh;
+            padding: 60px 80px;
+            background: white;
+        }
+
+        .reveal h1 {
+            font-size: 4em;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 20px;
+            text-transform: none;
+            line-height: 1.2;
+        }
+
+        .reveal h2 {
+            font-size: 3em;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 40px;
+            text-transform: none;
+        }
+
+        .reveal h3 {
+            font-size: 1.8em;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .reveal h4 {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 15px;
+        }
+
+        .reveal p {
+            font-size: 1.3em;
+            color: #475569;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .reveal li {
+            font-size: 1.2em;
+            color: #475569;
+            line-height: 2;
+            margin-bottom: 15px;
+        }
+
+        /* Slide Backgrounds with Colored Headers */
+        .slide-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 150px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8B5CF6 100%);
+            clip-path: polygon(0 0, 100% 0, 100% 70%, 0 100%);
+            z-index: -1;
+        }
+
+        .slide-title {
+            color: white;
+            margin-top: 20px;
+            font-size: 3em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Feature Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-left: 5px solid var(--primary);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+        }
+
+        .card-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8B5CF6 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            color: var(--dark);
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .card p {
+            color: #64748b;
+            font-size: 1.1em;
+            line-height: 1.7;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 30px;
+            margin: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .badge:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .badge.success {
+            background: var(--secondary);
+        }
+
+        .badge.warning {
+            background: var(--accent);
+        }
+
+        /* Stats */
+        .stats-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 50px 0;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, var(--primary) 0%, #8B5CF6 100%);
+            color: white;
+            padding: 40px 50px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.3);
+            min-width: 200px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 20px 45px rgba(99, 102, 241, 0.4);
+        }
+
+        .stat-number {
+            font-size: 4em;
+            font-weight: 800;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        /* Lists */
+        .reveal ul {
+            text-align: left;
+            max-width: 900px;
+            margin: 30px auto;
+        }
+
+        .reveal ul li {
+            background: #f8fafc;
+            padding: 20px 25px;
+            margin-bottom: 15px;
+            border-left: 5px solid var(--secondary);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .reveal ul li:hover {
+            background: #f1f5f9;
+            transform: translateX(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .reveal ul li::marker {
+            content: "✓ ";
+            color: var(--secondary);
+            font-weight: bold;
+        }
+
+        /* Architecture Flow */
+        .flow-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin: 60px 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-box {
+            background: white;
+            border: 3px solid var(--primary);
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .flow-box:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.35);
+        }
+
+        .flow-box i {
+            font-size: 3em;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .flow-box h4 {
+            color: var(--dark);
+            font-size: 1.4em;
+            margin: 15px 0 10px 0;
+        }
+
+        .flow-box p {
+            color: #64748b;
+            font-size: 1em;
+        }
+
+        .flow-arrow {
+            font-size: 3em;
+            color: var(--secondary);
+            animation: slideRight 1.5s infinite;
+        }
+
+        @keyframes slideRight {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(10px); }
+        }
+
+        /* Title Slide Specific */
+        .title-slide {
+            background: linear-gradient(135deg, var(--primary) 0%, #8B5CF6 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .title-slide::before {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            top: -200px;
+            right: -200px;
+        }
+
+        .title-slide h1 {
+            color: white;
+            font-size: 5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .title-slide p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.5em;
+        }
+
+        /* Accent Box */
+        .accent-box {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+            margin: 30px auto;
+            max-width: 800px;
+        }
+
+        .accent-box h3 {
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .accent-box p {
+            color: rgba(255,255,255,0.95);
+        }
+
+        /* Progress Bar */
+        .reveal .progress {
+            background: #e2e8f0;
+            height: 6px;
+        }
+
+        .reveal .progress span {
+            background: linear-gradient(90deg, var(--primary) 0%, #8B5CF6 100%);
+        }
+
+        /* Controls */
+        .reveal .controls {
+            color: var(--primary);
+        }
+
+        /* Slide Number */
+        .reveal .slide-number {
+            background: var(--primary);
+            color: white;
+            border-radius: 8px;
+            padding: 8px 15px;
+            font-weight: 600;
+        }
+
+        /* Links */
+        .reveal a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .reveal a:hover {
+            border-bottom-color: var(--primary);
+            color: #8B5CF6;
+        }
+
+        /* Image Container */
+        .img-container {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin: 30px 0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .reveal h1 { font-size: 2.5em; }
+            .reveal h2 { font-size: 2em; }
+            .card-grid { grid-template-columns: 1fr; }
+            .flow-diagram { flex-direction: column; }
+            .flow-arrow { transform: rotate(90deg); }
+            .stats-container { flex-direction: column; }
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reveal .slides section {
+            animation: fadeInUp 0.8s ease;
+        }
+
+        /* Background patterns */
+        .reveal .slides section:not(.title-slide) {
+            background: white;
+            position: relative;
+        }
+
+        .reveal .slides section:not(.title-slide)::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .reveal .slides section > * {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            
+            <!-- Slide 1: Title -->
+            <section class="title-slide">
+                <h1><i class="fas fa-heartbeat"></i> CuraNova</h1>
+                <p style="font-size: 2em; margin: 30px 0;">Smart AI-Powered EMR System</p>
+                <p style="font-size: 1.3em; margin-top: 50px;">Revolutionizing Healthcare Documentation with Artificial Intelligence</p>
+                <div style="margin-top: 60px;">
+                    <span class="badge">React 19</span>
+                    <span class="badge">TypeScript</span>
+                    <span class="badge success">Gemini AI</span>
+                    <span class="badge warning">Cloud-Native</span>
+                </div>
+            </section>
+
+            <!-- Slide 2: Project Overview -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-info-circle"></i> Project Overview</h2>
+                <p style="font-size: 1.4em; max-width: 1000px; margin: 50px auto; color: #1e293b;">
+                    CuraNova is a <strong style="color: var(--primary);">modern, cloud-native Electronic Medical Records (EMR) system</strong> 
+                    designed to streamline healthcare workflows and enhance patient care through AI-powered insights.
+                </p>
+                <div class="stats-container">
+                    <div class="stat-box">
+                        <span class="stat-number"><i class="fas fa-check-circle"></i></span>
+                        <span class="stat-label">Live & Deployed</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-number">80+</span>
+                        <span class="stat-label">Test Patients</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-number">16</span>
+                        <span class="stat-label">DB Migrations</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 3: Problem Statement -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-exclamation-triangle"></i> The Problem</h2>
+                <h3 style="color: var(--danger); margin: 40px 0;">Healthcare Documentation Challenges:</h3>
+                <ul>
+                    <li><strong>Manual, time-consuming</strong> record management</li>
+                    <li><strong>Difficult to identify</strong> patient trends and patterns</li>
+                    <li><strong>Limited access</strong> to clinical insights and analytics</li>
+                    <li><strong>Poor user experience</strong> with legacy systems</li>
+                    <li><strong>Lack of real-time</strong> collaboration tools</li>
+                    <li><strong>No AI-assisted</strong> decision support</li>
+                </ul>
+            </section>
+
+            <!-- Slide 4: The Solution -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-lightbulb"></i> Our Solution</h2>
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-robot"></i></div>
+                        <h3>AI-Powered</h3>
+                        <p>Gemini AI integration for intelligent health summaries and clinical insights</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-cloud"></i></div>
+                        <h3>Cloud-Native</h3>
+                        <p>Deployed on Cloudflare Edge for global performance and reliability</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-paint-brush"></i></div>
+                        <h3>Modern UX</h3>
+                        <p>Beautiful, responsive design with dark/light themes and intuitive interface</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-shield-alt"></i></div>
+                        <h3>Secure</h3>
+                        <p>Google OAuth with role-based access control and HIPAA considerations</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 5: Key Features - Patient Management -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-users"></i> Patient Management</h2>
+                <ul>
+                    <li><strong>Comprehensive patient profiles</strong> with demographics and medical history</li>
+                    <li><strong>Advanced search capabilities</strong> across multiple fields</li>
+                    <li><strong>Emergency contact management</strong> for quick access</li>
+                    <li><strong>Real-time patient status</strong> updates and monitoring</li>
+                    <li><strong>Medical record number</strong> tracking system</li>
+                </ul>
+                <div class="accent-box" style="margin-top: 40px;">
+                    <h3><i class="fas fa-database"></i> Database Status</h3>
+                    <p style="font-size: 1.4em;"><strong>80+ Patients</strong> in comprehensive demo database with full medical histories</p>
+                </div>
+            </section>
+
+            <!-- Slide 6: Key Features - Medical Records -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-file-medical"></i> Medical Records & Lab Results</h2>
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-notes-medical"></i></div>
+                        <h3>Visit Documentation</h3>
+                        <p>• Diagnoses & prescriptions<br>
+                           • Vital signs tracking<br>
+                           • Chief complaints<br>
+                           • Clinical notes & history</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-vial"></i></div>
+                        <h3>Laboratory Results</h3>
+                        <p>• Test result tracking<br>
+                           • Abnormal value detection<br>
+                           • Reference ranges<br>
+                           • Historical trend analysis</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 7: AI Features -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-brain"></i> AI-Powered Intelligence</h2>
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-comments"></i></div>
+                        <h3>Medical Chatbot</h3>
+                        <p>Conversational AI assistant with Gemini integration, conversation history, and evidence-based medical guidelines for doctors</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-file-alt"></i></div>
+                        <h3>Health Summaries</h3>
+                        <p>Personalized AI-generated guidance with dietary recommendations, medication explanations, and lifestyle measures</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-book-medical"></i></div>
+                        <h3>Literature Search</h3>
+                        <p>Intelligent PubMed integration with smart condition extraction and advanced relevance scoring algorithm</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-search"></i></div>
+                        <h3>Patient Matching</h3>
+                        <p>ML-based similar patient matching for research insights and comparative care planning</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 8: Recent Enhancements -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-rocket"></i> Recent AI Enhancements</h2>
+                <h3 style="color: var(--secondary); margin: 30px 0;">Latest Features Deployed to Production:</h3>
+                <ul style="font-size: 1.15em;">
+                    <li><strong style="color: var(--primary);">Enhanced Medical Literature:</strong> Smart condition extraction from diagnoses, medications, and abnormal lab results</li>
+                    <li><strong style="color: var(--primary);">Doctor Chatbot:</strong> Floating AI assistant with Gemini integration, conversation history, and clinical guidelines</li>
+                    <li><strong style="color: var(--primary);">Patient Health Summary:</strong> 7-section personalized guidance including dietary, medications, and lifestyle measures</li>
+                    <li><strong style="color: var(--primary);">Advanced Security:</strong> Role-based access with edit capabilities properly restricted</li>
+                    <li><strong style="color: var(--primary);">Relevance Scoring:</strong> Intelligent algorithm with exact/partial phrase matching and recency bonuses</li>
+                </ul>
+            </section>
+
+            <!-- Slide 9: Technology Stack -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-code"></i> Technology Stack</h2>
+                <div style="margin-top: 50px;">
+                    <h3 style="color: var(--primary); margin-bottom: 20px;">Frontend Technologies</h3>
+                    <div style="margin-bottom: 50px;">
+                        <span class="badge">React 19</span>
+                        <span class="badge">TypeScript</span>
+                        <span class="badge">Vite</span>
+                        <span class="badge">Tailwind CSS</span>
+                        <span class="badge">Recharts</span>
+                    </div>
+                    
+                    <h3 style="color: var(--primary); margin-bottom: 20px;">Backend Technologies</h3>
+                    <div style="margin-bottom: 50px;">
+                        <span class="badge success">Hono Framework</span>
+                        <span class="badge success">Cloudflare Workers</span>
+                        <span class="badge success">D1 Database</span>
+                        <span class="badge success">Zod Validation</span>
+                    </div>
+                    
+                    <h3 style="color: var(--primary); margin-bottom: 20px;">AI & Integration APIs</h3>
+                    <div>
+                        <span class="badge warning">Google Gemini AI</span>
+                        <span class="badge warning">PubMed eUtils</span>
+                        <span class="badge warning">Google OAuth 2.0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 10: Architecture -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-sitemap"></i> System Architecture</h2>
+                <div class="flow-diagram">
+                    <div class="flow-box">
+                        <i class="fas fa-desktop"></i>
+                        <h4>Frontend</h4>
+                        <p>React SPA<br/>Vite Build</p>
+                    </div>
+                    <div class="flow-arrow"><i class="fas fa-arrow-right"></i></div>
+                    <div class="flow-box">
+                        <i class="fas fa-server"></i>
+                        <h4>Edge Worker</h4>
+                        <p>Hono API<br/>Cloudflare</p>
+                    </div>
+                    <div class="flow-arrow"><i class="fas fa-arrow-right"></i></div>
+                    <div class="flow-box">
+                        <i class="fas fa-database"></i>
+                        <h4>Database</h4>
+                        <p>D1 SQLite<br/>16 Migrations</p>
+                    </div>
+                </div>
+                <div class="flow-diagram">
+                    <div class="flow-box">
+                        <i class="fas fa-robot"></i>
+                        <h4>Gemini AI</h4>
+                        <p>Health Summaries<br/>Chatbot</p>
+                    </div>
+                    <div class="flow-box">
+                        <i class="fas fa-book"></i>
+                        <h4>PubMed API</h4>
+                        <p>Medical<br/>Literature</p>
+                    </div>
+                    <div class="flow-box">
+                        <i class="fas fa-lock"></i>
+                        <h4>Google OAuth</h4>
+                        <p>Authentication<br/>& Sessions</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 11: Security & Compliance -->
+            <section>
+                <h2>🔒 Security & Compliance</h2>
+                <div style="text-align: left; margin-top: 40px;">
+                    <ul>
+                        <li><strong>OAuth 2.0:</strong> Secure Google authentication with role detection</li>
+                        <li><strong>Role-Based Access:</strong> Doctor, Nurse, and Patient permissions</li>
+                        <li><strong>HTTP-Only Cookies:</strong> Secure session management</li>
+                        <li><strong>Data Encryption:</strong> All data encrypted in transit and at rest</li>
+                        <li><strong>Input Validation:</strong> Zod schemas prevent injection attacks</li>
+                        <li><strong>HIPAA Considerations:</strong> Designed with healthcare privacy standards</li>
+                        <li><strong>Audit Logging:</strong> Comprehensive activity tracking</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 12: User Experience -->
+            <section>
+                <h2>🎨 Modern User Experience</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>🌓 Theme Support</h3>
+                        <p>Dark and light themes with smooth transitions</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>📱 Responsive</h3>
+                        <p>Optimized for desktop, tablet, and mobile</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>✨ Glassmorphism</h3>
+                        <p>Modern UI with backdrop filters and transparency</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>⚡ Fast Loading</h3>
+                        <p>95+ Lighthouse performance score</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 13: Database Schema -->
+            <section>
+                <h2>💾 Database Schema</h2>
+                <div style="text-align: left; margin-top: 30px; font-size: 0.8em;">
+                    <div class="feature-card" style="margin-bottom: 10px;">
+                        <strong>Patients:</strong> Demographics, contact info, medical record numbers
+                    </div>
+                    <div class="feature-card" style="margin-bottom: 10px;">
+                        <strong>Medical Records:</strong> Visit documentation, diagnoses, prescriptions, vitals
+                    </div>
+                    <div class="feature-card" style="margin-bottom: 10px;">
+                        <strong>Lab Results:</strong> Test results, reference ranges, abnormal flags
+                    </div>
+                    <div class="feature-card" style="margin-bottom: 10px;">
+                        <strong>Doctors:</strong> Healthcare provider profiles
+                    </div>
+                    <div class="feature-card">
+                        <strong>Sessions:</strong> User authentication and authorization tokens
+                    </div>
+                </div>
+                <p style="margin-top: 30px; color: #10B981;">16 Migration Files | 80 Test Patients</p>
+            </section>
+
+            <!-- Slide 14: Performance Metrics -->
+            <section>
+                <h2>⚡ Performance Metrics</h2>
+                <div style="margin-top: 40px;">
+                    <div class="stats-box">
+                        <h3>95+</h3>
+                        <p>Lighthouse Performance Score</p>
+                    </div>
+                    <div class="stats-box">
+                        <h3>305 KB</h3>
+                        <p>Worker Bundle Size (Optimized)</p>
+                    </div>
+                    <div class="stats-box">
+                        <h3>Global</h3>
+                        <p>Edge Deployment (Cloudflare)</p>
+                    </div>
+                    <div class="stats-box">
+                        <h3>< 100ms</h3>
+                        <p>Average API Response Time</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 15: Deployment -->
+            <section>
+                <h2>🚀 Deployment Pipeline</h2>
+                <div style="text-align: left; margin-top: 40px; font-size: 0.85em;">
+                    <h3 style="color: #10B981;">Automated Workflow:</h3>
+                    <ul style="margin-top: 20px;">
+                        <li><strong>Type Checking:</strong> TypeScript compilation validation</li>
+                        <li><strong>Build Process:</strong> Vite production build with tree-shaking</li>
+                        <li><strong>Code Splitting:</strong> Optimized bundle sizes</li>
+                        <li><strong>Wrangler Deploy:</strong> Cloudflare Workers deployment</li>
+                        <li><strong>D1 Migrations:</strong> Automatic database schema updates</li>
+                        <li><strong>Edge Distribution:</strong> Global CDN deployment</li>
+                    </ul>
+                    <p style="margin-top: 30px; text-align: center; color: #10B981;">
+                        <strong>Production URL:</strong> kklbi2qxe4j22.mocha.app
+                    </p>
+                </div>
+            </section>
+
+            <!-- Slide 16: Code Quality -->
+            <section>
+                <h2>✅ Code Quality & Standards</h2>
+                <div style="text-align: left; margin-top: 30px;">
+                    <ul>
+                        <li><strong>TypeScript:</strong> Full type safety across frontend and backend</li>
+                        <li><strong>ESLint:</strong> Enforced coding standards and best practices</li>
+                        <li><strong>React 19 Features:</strong> Modern hooks and patterns</li>
+                        <li><strong>Component Architecture:</strong> Reusable, modular design</li>
+                        <li><strong>Context API:</strong> Efficient state management</li>
+                        <li><strong>Custom Hooks:</strong> Shared logic abstraction</li>
+                        <li><strong>Error Handling:</strong> Comprehensive error boundaries</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 17: Project Structure -->
+            <section>
+                <h2>📁 Project Structure</h2>
+                <div style="text-align: left; font-size: 0.7em; margin-top: 20px;">
+                    <pre style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px;">
+src/
+├── react-app/              # Frontend React application
+│   ├── components/         # Reusable UI components (16 files)
+│   │   ├── ChatbotModal.tsx (AI assistant)
+│   │   ├── PatientHealthSummaryModal.tsx
+│   │   └── MedicalLiteratureModal.tsx
+│   ├── contexts/          # React contexts (Auth, Role, Theme)
+│   ├── hooks/             # Custom React hooks
+│   ├── pages/             # Page components (11 routes)
+│   └── utils/             # Utility functions
+├── shared/                # Shared TypeScript types
+└── worker/                # Backend Cloudflare Worker
+    └── index.ts           # API routes (3017 lines)
+                    </pre>
+                </div>
+            </section>
+
+            <!-- Slide 18: Testing Accounts -->
+            <section>
+                <h2>👥 Role-Based Access Testing</h2>
+                <div style="text-align: left; margin-top: 30px;">
+                    <h3 style="color: #10B981;">Email Pattern-Based Roles:</h3>
+                    <div class="feature-card" style="margin-top: 20px;">
+                        <strong>Doctor Access:</strong> firstname.01.doctor@gmail.com
+                        <p style="font-size: 0.8em; margin-top: 5px;">Full access to all features, chatbot, medical literature</p>
+                    </div>
+                    <div class="feature-card" style="margin-top: 15px;">
+                        <strong>Nurse Access:</strong> firstname.02.nurse@gmail.com
+                        <p style="font-size: 0.8em; margin-top: 5px;">Patient management with clinical permissions</p>
+                    </div>
+                    <div class="feature-card" style="margin-top: 15px;">
+                        <strong>Patient Access:</strong> firstname.03.patient@gmail.com
+                        <p style="font-size: 0.8em; margin-top: 5px;">Personal health dashboard with AI summary (view-only)</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 19: Future Roadmap -->
+            <section>
+                <h2>🔮 Future Roadmap</h2>
+                <div style="text-align: left; margin-top: 30px; font-size: 0.85em;">
+                    <ul>
+                        <li><strong>Advanced AI Features:</strong> Enhanced diagnostic suggestions and risk prediction</li>
+                        <li><strong>HL7 FHIR Integration:</strong> Interoperability with other healthcare systems</li>
+                        <li><strong>Native Mobile Apps:</strong> iOS and Android applications</li>
+                        <li><strong>Telemedicine:</strong> Video consultation integration</li>
+                        <li><strong>Predictive Analytics:</strong> Machine learning for health modeling</li>
+                        <li><strong>Multi-language Support:</strong> Internationalization (i18n)</li>
+                        <li><strong>Advanced Reporting:</strong> Custom dashboards and analytics</li>
+                        <li><strong>Appointment Scheduling:</strong> Integrated calendar system</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 20: Challenges & Solutions -->
+            <section>
+                <h2>🎯 Challenges & Solutions</h2>
+                <div class="feature-grid" style="font-size: 0.75em;">
+                    <div class="feature-card">
+                        <h4 style="color: #EF4444;">Challenge: AI Relevance</h4>
+                        <p><strong>Solution:</strong> Enhanced condition extraction with medication inference, lab patterns, and PubMed OR queries</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 style="color: #EF4444;">Challenge: Real-time Collaboration</h4>
+                        <p><strong>Solution:</strong> Live "Doctors Online" indicator and background polling</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 style="color: #EF4444;">Challenge: Patient Empowerment</h4>
+                        <p><strong>Solution:</strong> AI-generated health summaries with dietary, medication, and lifestyle guidance</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4 style="color: #EF4444;">Challenge: Data Security</h4>
+                        <p><strong>Solution:</strong> OAuth 2.0, role-based access, HTTP-only cookies, removed patient edit capabilities</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 21: Impact & Benefits -->
+            <section>
+                <h2>💡 Impact & Benefits</h2>
+                <div style="text-align: left; margin-top: 30px;">
+                    <h3 style="color: #10B981;">For Healthcare Providers:</h3>
+                    <ul style="font-size: 0.85em;">
+                        <li>Reduced documentation time with AI assistance</li>
+                        <li>Better clinical insights and decision support</li>
+                        <li>Quick access to medical literature and guidelines</li>
+                        <li>Real-time collaboration capabilities</li>
+                    </ul>
+                    
+                    <h3 style="color: #10B981; margin-top: 30px;">For Patients:</h3>
+                    <ul style="font-size: 0.85em;">
+                        <li>Personalized health guidance and education</li>
+                        <li>Easy access to medical records and results</li>
+                        <li>Better understanding of diagnoses and medications</li>
+                        <li>Empowered self-care with AI recommendations</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Slide 22: Technical Highlights -->
+            <section>
+                <h2>🌟 Technical Highlights</h2>
+                <div class="feature-grid" style="font-size: 0.75em;">
+                    <div class="feature-card">
+                        <h4>Edge Computing</h4>
+                        <p>Cloudflare Workers for global low-latency</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Serverless Database</h4>
+                        <p>D1 SQLite with automatic scaling</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Modern React</h4>
+                        <p>React 19 with latest features & patterns</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>AI Integration</h4>
+                        <p>Gemini API for intelligent assistance</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Type Safety</h4>
+                        <p>Full TypeScript coverage</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Responsive Design</h4>
+                        <p>Mobile-first Tailwind CSS</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 23: Demo & Live Site -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-globe"></i> Live Demo</h2>
+                <div class="accent-box" style="padding: 60px; margin-top: 80px;">
+                    <h3 style="font-size: 2em; margin-bottom: 30px;"><i class="fas fa-link"></i> Production URL</h3>
+                    <p style="font-size: 2.2em; word-break: break-all;">
+                        <a href="https://kklbi2qxe4j22.mocha.app" target="_blank" style="color: white; border-bottom: 3px solid white;">
+                            kklbi2qxe4j22.mocha.app
+                        </a>
+                    </p>
+                </div>
+                <p style="margin-top: 60px; font-size: 1.3em; color: #64748b;">
+                    <i class="fas fa-star" style="color: var(--accent);"></i> Try AI chatbot • Medical literature search • Patient health summaries
+                </p>
+            </section>
+
+            <!-- Slide 24: GitHub & Resources -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-folder-open"></i> Resources & Repository</h2>
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-icon"><i class="fab fa-github"></i></div>
+                        <h3>GitHub Repository</h3>
+                        <p><a href="https://github.com/Abilash-AK/CuraNova">github.com/Abilash-AK/CuraNova</a></p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-book"></i></div>
+                        <h3>Documentation</h3>
+                        <p>Comprehensive README with setup instructions and deployment guide</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-tools"></i></div>
+                        <h3>Tech Stack</h3>
+                        <p>React 19, TypeScript, Hono, Cloudflare Workers, Gemini AI</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon"><i class="fas fa-chart-line"></i></div>
+                        <h3>Performance</h3>
+                        <p>95+ Lighthouse Score • 305KB Bundle • Global Edge Deployment</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Slide 25: Conclusion -->
+            <section>
+                <div class="slide-header"></div>
+                <h2 class="slide-title"><i class="fas fa-check-circle"></i> Conclusion</h2>
+                <h3 style="color: var(--secondary); margin: 40px 0 30px 0; font-size: 2em;">CuraNova Delivers:</h3>
+                <ul style="font-size: 1.2em;">
+                    <li><strong>Modern, AI-powered</strong> EMR system</li>
+                    <li><strong>Cloud-native architecture</strong> for global performance</li>
+                    <li><strong>Comprehensive patient management</strong> and analytics</li>
+                    <li><strong>Intelligent health insights</strong> and recommendations</li>
+                    <li><strong>Secure, role-based</strong> access control</li>
+                    <li><strong>Beautiful, responsive</strong> user experience</li>
+                </ul>
+                <div class="accent-box" style="margin-top: 50px;">
+                    <h3 style="font-size: 2em;"><i class="fas fa-heartbeat"></i> Revolutionizing Healthcare Documentation</h3>
+                </div>
+            </section>
+
+            <!-- Slide 26: Thank You -->
+            <section class="title-slide">
+                <h1 style="font-size: 5em; margin-bottom: 30px;"><i class="fas fa-heart"></i> Thank You!</h1>
+                <p style="font-size: 2em; margin: 50px 0;">Questions & Discussion</p>
+                <div style="background: rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; margin-top: 80px; backdrop-filter: blur(10px);">
+                    <p style="font-size: 1.3em; margin: 20px 0;"><i class="fas fa-envelope"></i> <strong>Contact:</strong> support@curanova.health</p>
+                    <p style="font-size: 1.3em; margin: 20px 0;"><i class="fas fa-globe"></i> <strong>Live Demo:</strong> <a href="https://kklbi2qxe4j22.mocha.app" style="color: white;">kklbi2qxe4j22.mocha.app</a></p>
+                    <p style="font-size: 1.3em; margin: 20px 0;"><i class="fab fa-github"></i> <strong>GitHub:</strong> <a href="https://github.com/Abilash-AK/CuraNova" style="color: white;">github.com/Abilash-AK/CuraNova</a></p>
+                </div>
+                <p style="margin-top: 60px; font-size: 1.2em;">
+                    Made with <i class="fas fa-heart" style="color: #EF4444;"></i> for Healthcare Professionals
+                </p>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            transition: 'slide',
+            backgroundTransition: 'fade',
+            controls: true,
+            progress: true,
+            center: true,
+            slideNumber: true,
+            autoPlayMedia: true
+        });
+    </script>
+</body>
+</html>

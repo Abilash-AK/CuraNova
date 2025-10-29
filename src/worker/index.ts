@@ -9,6 +9,14 @@ import { getCookie, setCookie } from "hono/cookie";
 import { PatientSchema, MedicalRecordSchema, LabResultSchema } from "../shared/types";
 import type { DashboardStats } from "../shared/types";
 import type { Env } from "../../worker-configuration";
+import { OllamaClient, OllamaCache } from "./lib/ollama-client";
+import { 
+  MEDICAL_SYSTEM_PROMPT, 
+  HEALTH_SUMMARY_PROMPT_TEMPLATE, 
+  CHATBOT_SYSTEM_PROMPT,
+  buildPatientDataString,
+  formatHealthSummaryForPatient
+} from "./lib/meditron-prompts";
 
 const SESSION_COOKIE_NAME = "curanova_session";
 const OAUTH_STATE_COOKIE_NAME = "curanova_oauth_state";
@@ -2350,26 +2358,90 @@ Return ONLY valid JSON in this structure (no markdown, no explanations):
   }
 });
 
-// Medical Chatbot endpoint - AI assistant for doctors
+// Medical Chatbot endpoint - AI assistant for doctors (Meditron 7B powered)
 app.post("/api/chatbot", authMiddleware, async (c) => {
+  // Parse body once at the top level to avoid re-reading issues
+  const user = c.get("user");
+  if (!user) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  const body = await c.req.json();
+  const { message, conversationHistory = [] } = body as {
+    message: string;
+    conversationHistory?: Array<{ role: string; content: string }>;
+  };
+
+  if (!message || message.trim().length === 0) {
+    return c.json({ error: "Message is required" }, 400);
+  }
+
   try {
-    const user = c.get("user");
-    if (!user) {
-      return c.json({ error: "Unauthorized" }, 401);
+
+    // Initialize Ollama client for Meditron 7B
+    const ollama = new OllamaClient({
+      baseUrl: c.env.OLLAMA_URL || 'http://localhost:11434',
+      model: 'meditron',
+      temperature: 0.7,
+      maxTokens: 2048,
+    });
+
+    // Check Ollama availability
+    const isOllamaHealthy = await ollama.healthCheck();
+    let aiResponse: string;
+    let source: string;
+
+    if (isOllamaHealthy) {
+      try {
+        // Format messages for Ollama chat API
+        const chatMessages = [
+          {
+            role: 'system' as const,
+            content: CHATBOT_SYSTEM_PROMPT,
+          },
+          ...conversationHistory.slice(-10).map((msg: any) => ({
+            role: (msg.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+            content: msg.content,
+          })),
+          {
+            role: 'user' as const,
+            content: message,
+          },
+        ];
+
+        // Generate response with Meditron
+        aiResponse = await ollama.chat(chatMessages);
+        source = 'meditron-7b';
+
+        // Add disclaimer if discussing treatment or diagnosis
+        const needsDisclaimer = /treat|diagnose|prescribe|recommend|therapy|medication|drug/i.test(message);
+        if (needsDisclaimer && !aiResponse.toLowerCase().includes('disclaimer')) {
+          aiResponse += "\n\n*Note: This information is for educational purposes. Always verify with current clinical guidelines and consider individual patient factors when making clinical decisions.*";
+        }
+
+      } catch (ollamaError) {
+        logError("Meditron (Ollama) API call failed", ollamaError);
+        throw ollamaError; // Fall through to Gemini backup
+      }
+
+    } else {
+      throw new Error("Ollama not available");
     }
 
-    const body = await c.req.json();
-    const { message, conversationHistory = [] } = body as {
-      message: string;
-      conversationHistory?: Array<{ role: string; content: string }>;
-    };
+    return c.json({
+      response: aiResponse,
+      timestamp: new Date().toISOString(),
+      conversationId: crypto.randomUUID(),
+      model: source,
+      source: 'meditron',
+    });
 
-    if (!message || message.trim().length === 0) {
-      return c.json({ error: "Message is required" }, 400);
-    }
+  } catch (primaryError) {
+    // Fallback to Gemini if Meditron fails
+    try {
+      logError("Primary AI (Meditron) failed, falling back to Gemini", primaryError);
 
-    // Build conversation context for Gemini
-    let conversationContext = `You are CuraNova AI Assistant, a highly knowledgeable medical AI assistant helping doctors and healthcare professionals. You provide evidence-based medical information, clinical guidance, and decision support.
+      let conversationContext = `You are CuraNova AI Assistant, a highly knowledgeable medical AI assistant helping doctors and healthcare professionals. You provide evidence-based medical information, clinical guidance, and decision support.
 
 IMPORTANT GUIDELINES:
 1. Provide accurate, evidence-based medical information
@@ -2384,65 +2456,51 @@ IMPORTANT GUIDELINES:
 
 `;
 
-    // Add conversation history if exists
-    if (conversationHistory.length > 0) {
-      conversationContext += "\nConversation History:\n";
-      // Limit to last 5 exchanges to keep context manageable
-      const recentHistory = conversationHistory.slice(-10);
-      for (const msg of recentHistory) {
-        const role = msg.role === 'user' ? 'Doctor' : 'AI Assistant';
-        conversationContext += `${role}: ${msg.content}\n`;
-      }
-      conversationContext += "\n";
-    }
-
-    conversationContext += `Doctor's Question: ${message}\n\nAI Assistant:`;
-
-    try {
-      // Validate API key
-      if (!c.env.GEMINI_API_KEY) {
-        throw new Error("Gemini API key not configured");
+      if (conversationHistory.length > 0) {
+        conversationContext += "\nConversation History:\n";
+        const recentHistory = conversationHistory.slice(-10);
+        for (const msg of recentHistory) {
+          const role = msg.role === 'user' ? 'Doctor' : 'AI Assistant';
+          conversationContext += `${role}: ${msg.content}\n`;
+        }
+        conversationContext += "\n";
       }
 
-      // Call Gemini API
-      const geminiResponse = await requestGeminiText(c.env.GEMINI_API_KEY, conversationContext);
+      conversationContext += `Doctor's Question: ${message}\n\nAI Assistant:`;
+
+      if (c.env.GEMINI_API_KEY) {
+        const geminiResponse = await requestGeminiText(c.env.GEMINI_API_KEY, conversationContext);
+        
+        let aiResponse = geminiResponse.trim();
+        const needsDisclaimer = /treat|diagnose|prescribe|recommend|therapy|medication|drug/i.test(message);
+        if (needsDisclaimer && !aiResponse.toLowerCase().includes('disclaimer')) {
+          aiResponse += "\n\n*Note: This information is for educational purposes. Always verify with current clinical guidelines and consider individual patient factors when making clinical decisions.*";
+        }
+
+        return c.json({
+          response: aiResponse,
+          timestamp: new Date().toISOString(),
+          conversationId: crypto.randomUUID(),
+          model: 'gemini-1.5-flash',
+          source: 'gemini-fallback',
+        });
+      }
+
+      throw new Error("No AI service available");
+
+    } catch (fallbackError) {
+      logError("All AI services failed", fallbackError);
       
-      if (!geminiResponse) {
-        throw new Error("No response from Gemini API");
-      }
-
-      // Parse and clean the response
-      let aiResponse = geminiResponse.trim();
-      
-      // Add disclaimer if discussing treatment or diagnosis
-      const needsDisclaimer = /treat|diagnose|prescribe|recommend|therapy|medication|drug/i.test(message);
-      if (needsDisclaimer && !aiResponse.toLowerCase().includes('disclaimer')) {
-        aiResponse += "\n\n*Note: This information is for educational purposes. Always verify with current clinical guidelines and consider individual patient factors when making clinical decisions.*";
-      }
-
-      return c.json({
-        response: aiResponse,
-        timestamp: new Date().toISOString(),
-        conversationId: crypto.randomUUID()
-      });
-
-    } catch (geminiError) {
-      logError("Gemini API call failed in chatbot", geminiError);
-      
-      // Fallback response if Gemini fails
       const fallbackResponse = getFallbackChatbotResponse(message);
       
       return c.json({
         response: fallbackResponse,
         timestamp: new Date().toISOString(),
         conversationId: crypto.randomUUID(),
-        fallback: true
+        model: 'static-fallback',
+        source: 'fallback',
       });
     }
-
-  } catch (error) {
-    logError("Chatbot endpoint error", error);
-    return c.json({ error: "Failed to process chatbot request" }, 500);
   }
 });
 
@@ -2692,7 +2750,7 @@ app.get('/api/patient-data/:mrn', async (c) => {
   }
 });
 
-// Patient Health Summary endpoint - AI-generated personalized health guidance
+// Patient Health Summary endpoint - AI-generated personalized health guidance (Meditron 7B powered)
 app.get('/api/patient-health-summary/:mrn', async (c) => {
   try {
     const mrn = c.req.param('mrn');
@@ -2750,23 +2808,145 @@ app.get('/api/patient-health-summary/:mrn', async (c) => {
       }
     });
 
-    // Get recent vitals
-    const recentRecord = records[0];
-    const recentBP = recentRecord ? 
-      `${recentRecord.blood_pressure_systolic}/${recentRecord.blood_pressure_diastolic}` : 
-      'Not recorded';
-    const recentWeight = recentRecord?.weight || 'Not recorded';
-    
     // Get abnormal labs
     const abnormalLabs = labs.filter(lab => lab.is_abnormal).slice(0, 5);
 
-    // Build Gemini prompt for patient-friendly health summary
+    // Build patient data object
     const patientName = `${(patient as any).first_name} ${(patient as any).last_name}`;
-    const age = (patient as any).date_of_birth ? 
-      new Date().getFullYear() - new Date((patient as any).date_of_birth).getFullYear() : 
-      'unknown';
+    const patientData = {
+      first_name: (patient as any).first_name,
+      last_name: (patient as any).last_name,
+      date_of_birth: (patient as any).date_of_birth,
+      gender: (patient as any).gender,
+      blood_type: (patient as any).blood_type,
+      allergies: (patient as any).allergies,
+      diagnoses: Array.from(diagnoses),
+      medications: Array.from(medications),
+      lab_results: abnormalLabs,
+      medical_record_number: mrn,
+      doctor_name: (patient as any).doctor_name || 'your doctor',
+    };
 
-    const prompt = `You are a compassionate AI health assistant helping a patient understand their health information. Generate a patient-friendly, easy-to-understand health summary for:
+    // Initialize Ollama client and cache
+    const ollama = new OllamaClient({
+      baseUrl: c.env.OLLAMA_URL || 'http://localhost:11434',
+      model: 'meditron',
+      temperature: 0.5,
+      maxTokens: 3072,
+    });
+
+    const cache = new OllamaCache();
+
+    // Check cache first
+    const cacheKey = OllamaCache.generateKey(patientData);
+    const cachedResponse = cache.get(cacheKey);
+
+    if (cachedResponse) {
+      return c.json({
+        summary: cachedResponse,
+        generated_at: new Date().toISOString(),
+        diagnoses: patientData.diagnoses,
+        medications: patientData.medications,
+        ai_generated: true,
+        model: 'meditron-7b',
+        source: 'meditron-cached',
+      });
+    }
+
+    // Check Ollama availability
+    const isOllamaHealthy = await ollama.healthCheck();
+    let summary: string;
+    let source: string;
+
+    if (isOllamaHealthy) {
+      try {
+        // Build prompt using templates
+        const patientDataString = buildPatientDataString(patientData);
+        const prompt = `${HEALTH_SUMMARY_PROMPT_TEMPLATE}\n\n${patientDataString}`;
+
+        // Generate summary with Meditron
+        summary = await ollama.generate(prompt, MEDICAL_SYSTEM_PROMPT);
+        
+        // Format for patient view
+        summary = formatHealthSummaryForPatient(summary, patientName);
+        source = 'meditron-7b';
+
+        // Cache the response
+        cache.set(cacheKey, summary);
+
+      } catch (ollamaError) {
+        logError("Meditron (Ollama) API failed for patient summary", ollamaError);
+        throw ollamaError; // Fall through to Gemini backup
+      }
+
+    } else {
+      throw new Error("Ollama not available");
+    }
+
+    return c.json({
+      summary,
+      generated_at: new Date().toISOString(),
+      diagnoses: patientData.diagnoses,
+      medications: patientData.medications,
+      ai_generated: true,
+      model: 'meditron-7b',
+      source,
+    });
+
+  } catch (primaryError) {
+    // Fallback to Gemini if Meditron fails
+    try {
+      logError("Primary AI (Meditron) failed for summary, falling back to Gemini", primaryError);
+
+      const mrn = c.req.param('mrn');
+      const patient = await c.env.DB.prepare(
+        "SELECT * FROM patients WHERE medical_record_number = ?"
+      ).bind(mrn).first();
+
+      // Re-fetch data (already in scope from try block above, but for clarity in fallback)
+      const [medicalRecords, labResults] = await Promise.all([
+        c.env.DB.prepare(
+          "SELECT * FROM medical_records WHERE patient_id = ? ORDER BY visit_date DESC LIMIT 10"
+        ).bind((patient as any).id).all(),
+        c.env.DB.prepare(
+          "SELECT * FROM lab_results WHERE patient_id = ? ORDER BY test_date DESC LIMIT 20"
+        ).bind((patient as any).id).all()
+      ]);
+
+      const records = medicalRecords.results as any[];
+      const labs = labResults.results as any[];
+
+      const diagnoses = new Set<string>();
+      const medications = new Set<string>();
+      
+      records.forEach(record => {
+        if (record.diagnosis) {
+          record.diagnosis.split(/[,;]/).forEach((d: string) => {
+            const diagnosis = d.trim();
+            if (diagnosis.length > 3) diagnoses.add(diagnosis);
+          });
+        }
+        if (record.prescription) {
+          record.prescription.split(/[,;]/).forEach((m: string) => {
+            const med = m.trim();
+            if (med.length > 2) medications.add(med);
+          });
+        }
+      });
+
+      const recentRecord = records[0];
+      const recentBP = recentRecord ? 
+        `${recentRecord.blood_pressure_systolic}/${recentRecord.blood_pressure_diastolic}` : 
+        'Not recorded';
+      const recentWeight = recentRecord?.weight || 'Not recorded';
+      const abnormalLabs = labs.filter(lab => lab.is_abnormal).slice(0, 5);
+
+      const patientName = `${(patient as any).first_name} ${(patient as any).last_name}`;
+      const age = (patient as any).date_of_birth ? 
+        new Date().getFullYear() - new Date((patient as any).date_of_birth).getFullYear() : 
+        'unknown';
+
+      const prompt = `You are a compassionate AI health assistant helping a patient understand their health information. Generate a patient-friendly, easy-to-understand health summary for:
 
 Patient: ${patientName}, Age: ${age}, Gender: ${(patient as any).gender}
 Allergies: ${(patient as any).allergies || 'None reported'}
@@ -2814,28 +2994,65 @@ Generate a comprehensive, patient-friendly health summary with these sections:
 
 Use simple, encouraging language. Avoid medical jargon or explain it clearly. Be supportive and empowering. Focus on actionable advice the patient can implement today.`;
 
-    try {
-      if (!c.env.GEMINI_API_KEY) {
-        throw new Error("Gemini API key not configured");
+      if (c.env.GEMINI_API_KEY) {
+        const geminiResponse = await requestGeminiText(c.env.GEMINI_API_KEY, prompt);
+        
+        if (geminiResponse) {
+          return c.json({
+            summary: geminiResponse,
+            generated_at: new Date().toISOString(),
+            diagnoses: Array.from(diagnoses),
+            medications: Array.from(medications),
+            ai_generated: true,
+            model: 'gemini-1.5-flash',
+            source: 'gemini-fallback',
+          });
+        }
       }
 
-      const geminiResponse = await requestGeminiText(c.env.GEMINI_API_KEY, prompt);
+      throw new Error("No AI service available");
+
+    } catch (fallbackError) {
+      logError("All AI services failed", fallbackError);
+
+      const mrn = c.req.param('mrn');
+      const patient = await c.env.DB.prepare(
+        "SELECT * FROM patients WHERE medical_record_number = ?"
+      ).bind(mrn).first();
+
+      const [medicalRecords, labResults] = await Promise.all([
+        c.env.DB.prepare(
+          "SELECT * FROM medical_records WHERE patient_id = ? ORDER BY visit_date DESC LIMIT 10"
+        ).bind((patient as any).id).all(),
+        c.env.DB.prepare(
+          "SELECT * FROM lab_results WHERE patient_id = ? ORDER BY test_date DESC LIMIT 20"
+        ).bind((patient as any).id).all()
+      ]);
+
+      const records = medicalRecords.results as any[];
+      const labs = labResults.results as any[];
+
+      const diagnoses = new Set<string>();
+      const medications = new Set<string>();
       
-      if (geminiResponse) {
-        return c.json({
-          summary: geminiResponse,
-          generated_at: new Date().toISOString(),
-          diagnoses: Array.from(diagnoses),
-          medications: Array.from(medications),
-          ai_generated: true
-        });
-      }
+      records.forEach(record => {
+        if (record.diagnosis) {
+          record.diagnosis.split(/[,;]/).forEach((d: string) => {
+            const diagnosis = d.trim();
+            if (diagnosis.length > 3) diagnoses.add(diagnosis);
+          });
+        }
+        if (record.prescription) {
+          record.prescription.split(/[,;]/).forEach((m: string) => {
+            const med = m.trim();
+            if (med.length > 2) medications.add(med);
+          });
+        }
+      });
+
+      const abnormalLabs = labs.filter(lab => lab.is_abnormal).slice(0, 5);
+      const patientName = `${(patient as any).first_name} ${(patient as any).last_name}`;
       
-      throw new Error("No response from Gemini");
-    } catch (geminiError) {
-      logError("Gemini API failed for patient summary", geminiError);
-      
-      // Fallback summary
       const fallbackSummary = buildPatientFallbackSummary(
         patientName,
         Array.from(diagnoses),
@@ -2850,12 +3067,10 @@ Use simple, encouraging language. Avoid medical jargon or explain it clearly. Be
         diagnoses: Array.from(diagnoses),
         medications: Array.from(medications),
         ai_generated: false,
-        fallback: true
+        model: 'static-fallback',
+        source: 'fallback',
       });
     }
-  } catch (error) {
-    logError("Failed to generate patient health summary", error);
-    return c.json({ error: "Failed to generate health summary" }, 500);
   }
 });
 

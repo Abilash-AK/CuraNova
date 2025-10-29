@@ -345,10 +345,7 @@ export default function Login() {
                 )}
               </button>
 
-              <div className="text-xs lg:text-sm text-muted bg-gray-50 dark:bg-gray-800/50 p-3 lg:p-4 rounded-lg mb-4">
-                <strong>Google OAuth requires email format:</strong><br />
-                {selectedRole === 'doctor' ? 'doctorname.01.doctor@gmail.com' : 'nursename.02.nurse@gmail.com'}
-              </div>
+              
 
               <div className="flex items-center justify-center">
                 <button
