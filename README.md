@@ -3,7 +3,7 @@
 <div align="center">
   <img src="https://mocha-cdn.com/01995c60-fb93-7bf1-834e-39691d61e5d6/image.png_7532.png" alt="CuraNova Logo" width="200"/>
   
-  [![Live Demo](https://img.shields.io/badge/Live%20Demo-Available-brightgreen)](https://kklbi2qxe4j22.mocha.app)
+  [![Live Demo](https://img.shields.io/badge/Live%20Demo-Available-brightgreen)](https://curanova-worker.abilashkumar290.workers.dev/)
   [![License](https://img.shields.io/badge/License-Proprietary-red)](#license)
   [![Built with](https://img.shields.io/badge/Built%20with-React%20%7C%20TypeScript%20%7C%20Cloudflare-blue)](#technology-stack)
 </div>
